@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "jpeg_utils_conf.h"
+#include "cmsis_os2.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -26,6 +27,20 @@
 #include "lvgl/lvgl.h"
 #include "lvgl/demos/lv_demos.h"
 #include "lvgl/examples/lv_examples.h"
+#include "main_scr.h"
+#include "avi_parser.h"
+#include "output_mjpeg_800x480.h"
+#include "string.h"
+#include "stdio.h"
+#include "video_demo.h"
+#include "jpeg_utils.h"
+#include "parameter_display.h"
+
+avi_t avi;
+int video = 1;
+static lv_obj_t *video_screen = NULL;
+static lv_obj_t *video_img = NULL;
+static lv_timer_t *close_timer = NULL;
 
 /* USER CODE END Includes */
 
@@ -65,6 +80,8 @@ DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
 LTDC_HandleTypeDef hltdc;
 
+UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -72,6 +89,7 @@ LTDC_HandleTypeDef hltdc;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void SystemPower_Config(void);
+void MX_FREERTOS_Init(void);
 static void MX_GPIO_Init(void);
 static void MX_GPDMA1_Init(void);
 static void MX_ICACHE_Init(void);
@@ -84,12 +102,32 @@ static void MX_GPU2D_Init(void);
 static void MX_HSPI1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_JPEG_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void hide_video_screen_cb(lv_timer_t *timer)
+{
+    // Initialize parameter screen
+    static_param_screen_init("Video test", "28", "12 KB", "78 KB", "0.5 ms", "15 %");
+
+    // Delete video screen and free memory
+    if (video_screen) {
+        lv_obj_del(video_screen);
+        video_screen = NULL;
+        video_img = NULL;
+    }
+
+    // Delete timer itself
+    if (timer) {
+        lv_timer_del(timer);
+    }
+
+    close_timer = NULL;
+}
 
 /* USER CODE END 0 */
 
@@ -113,11 +151,11 @@ int main(void)
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
-
   /* Configure the System Power */
   SystemPower_Config();
+
+  /* Configure the system clock */
+  SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
@@ -136,14 +174,23 @@ int main(void)
   MX_HSPI1_Init();
   MX_I2C2_Init();
   MX_JPEG_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   lvgl_port_init();
 
-  lv_demo_benchmark();
-  // lv_obj_center(lv_roller_create(lv_screen_active()));
-
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -151,12 +198,81 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    lv_timer_handler();
-
-    HAL_Delay(1);
-
     /* USER CODE BEGIN 3 */
+	  lv_timer_handler();
+	  HAL_Delay(1);
+
+	  if (video == 0)
+	  {
+		  // Reset flag to avoid re-entry
+		  video = 1;
+
+		  // --- Create new video screen ---
+	      video_screen = lv_obj_create(NULL);
+	      lv_screen_load(video_screen);
+	      lv_obj_set_style_bg_color(video_screen, lv_color_black(), 0);
+
+	      // Initialize JPEG tables (important for STM32 JPEG hardware)
+	      JPEG_InitColorTables();
+
+	      // Initialize AVI file
+	      if (avi_init(&avi, output_mjpeg_800x480_avi, output_mjpeg_800x480_avi_len) != 0) {
+	    	  lv_obj_t *label = lv_label_create(video_screen);
+	    	  lv_label_set_text(label, "AVI Init Failed");
+	    	  lv_obj_center(label);
+	    	  HAL_UART_Transmit(&huart1, (uint8_t *)"AVI Init Failed\r\n", 16, 100);
+	    	  continue;
+	      }
+
+	      char log[64];
+	      snprintf(log, sizeof(log), "AVI: %ldx%ld, %ld frames, %ld FPS\r\n",
+	                   avi.width, avi.height, avi.frame_count, avi.fps);
+	      HAL_UART_Transmit(&huart1, (uint8_t *)log, strlen(log), 100);
+
+	      // Create LVGL image object to show video frames
+	      video_img = lv_image_create(video_screen);
+	      lv_obj_center(video_img);
+
+	      uint32_t frame_idx = 0;
+	      uint32_t start_time = HAL_GetTick();
+
+	      // --- Playback loop for 10 seconds ---
+	      while (HAL_GetTick() - start_time < 10000)
+	      {
+	    	  const uint8_t *frame_buf;
+	    	  uint32_t frame_size;
+
+	    	  if (avi_get_frame(&avi, frame_idx, &frame_buf, &frame_size) == 0 && frame_size > 0) {
+	    		  static uint8_t rgb_buffer[800 * 480 * 2];
+	    		  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, 800, 480);
+
+	    		  lv_img_dsc_t img_dsc = {
+	    				  .header.cf = LV_COLOR_FORMAT_RGB565,
+	                      .header.w = 800,
+	                      .header.h = 480,
+	                      .data_size = 800 * 480 * 2,
+	                      .data = (const uint8_t *)rgb_buffer
+	    		  };
+
+	                  lv_img_set_src(video_img, &img_dsc);
+	              }
+
+	              frame_idx = (frame_idx + 1) % avi.frame_count;
+
+	              uint32_t delay_ms = 1000 / avi.fps;
+	              uint32_t now = HAL_GetTick();
+	              while (HAL_GetTick() - now < delay_ms) {
+	                  lv_timer_handler();
+	                  HAL_Delay(1);
+	              }
+	          }
+
+	          // After 10s → schedule cleanup and switch screen
+	          close_timer = lv_timer_create(hide_video_screen_cb, 1, NULL);
+	      }
   }
+
+
   /* USER CODE END 3 */
 }
 
@@ -369,9 +485,9 @@ static void MX_GPDMA1_Init(void)
   __HAL_RCC_GPDMA1_CLK_ENABLE();
 
   /* GPDMA1 interrupt Init */
-    HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(GPDMA1_Channel0_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel0_IRQn);
-    HAL_NVIC_SetPriority(GPDMA1_Channel1_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(GPDMA1_Channel1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
 
   /* USER CODE BEGIN GPDMA1_Init 1 */
@@ -429,7 +545,7 @@ static void MX_HSPI1_Init(void)
   hxspi1.Init.FifoThresholdByte = 4;
   hxspi1.Init.MemoryMode = HAL_XSPI_SINGLE_MEM;
   hxspi1.Init.MemoryType = HAL_XSPI_MEMTYPE_MACRONIX;
-  hxspi1.Init.MemorySize = HAL_XSPI_SIZE_1GB;
+  hxspi1.Init.MemorySize = HAL_XSPI_SIZE_8GB;
   hxspi1.Init.ChipSelectHighTimeCycle = 2;
   hxspi1.Init.FreeRunningClock = HAL_XSPI_FREERUNCLK_DISABLE;
   hxspi1.Init.ClockMode = HAL_XSPI_CLOCK_MODE_0;
@@ -619,6 +735,54 @@ static void MX_LTDC_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -637,6 +801,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOI_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, LCD_DISP_EN_Pin|LCD_BL_CTRL_Pin, GPIO_PIN_SET);
@@ -688,7 +853,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI5_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI5_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */

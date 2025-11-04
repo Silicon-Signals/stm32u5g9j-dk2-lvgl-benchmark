@@ -175,7 +175,13 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM
-
+  .sram4 (NOLOAD) : 
+  {
+    . = ALIGN(32);
+    *(.sram4)
+    . = ALIGN(32);
+  } >RAM2
+  
   /* Remove information from the compiler libraries */
   /DISCARD/ :
   {
