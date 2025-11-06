@@ -33,11 +33,11 @@ lv_timer_t *car_tier;
 static int pos_idx[5] = {4, 3, 2, 1, 0};
 
 static lv_point_t positions[5] = {
-		{680, 60},
-		{550, 165},
-		{400, 193},
-		{250, 165},
-		{120, 60}
+		{690, 60},
+		{570, 185},
+		{400, 230},
+		{230, 185},
+		{100, 60}
 };
 static const lv_img_dsc_t *tire_images[5] = {&tire_pair1, &tire_pair2, &tire_pair3, &tire_pair4, &tire_pair5};
 static int tire_w, tire_h;

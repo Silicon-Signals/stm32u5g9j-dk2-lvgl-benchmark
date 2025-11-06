@@ -30,11 +30,14 @@
 #include "main_scr.h"
 #include "avi_parser.h"
 #include "output_mjpeg_800x480.h"
+#include "output_mjpeg_320x240.h"
 #include "string.h"
 #include "stdio.h"
 #include "video_demo.h"
 #include "jpeg_utils.h"
 #include "parameter_display.h"
+#include "stm32u5xx.h"
+#include "mx66uw1g45g.h"
 
 avi_t avi;
 int video = 1;
@@ -51,7 +54,8 @@ static lv_timer_t *close_timer = NULL;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define video_h  800
+#define video_w  480
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -109,6 +113,7 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//__attribute__((section(".ExtFlashSection"))) uint8_t rgb_buffer[800 * 480 * 2];
 static void hide_video_screen_cb(lv_timer_t *timer)
 {
     // Initialize parameter screen
@@ -178,17 +183,18 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   lvgl_port_init();
-
+  lv_obj_t * out = main_screen_start();
+  lv_scr_load(out);
   /* USER CODE END 2 */
 
   /* Init scheduler */
-  osKernelInitialize();
-
-  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
-
-  /* Start scheduler */
-  osKernelStart();
+//  osKernelInitialize();
+//
+//  /* Call init function for freertos objects (in cmsis_os2.c) */
+//  MX_FREERTOS_Init();
+//
+//  /* Start scheduler */
+//  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -199,6 +205,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+
 	  lv_timer_handler();
 	  HAL_Delay(1);
 
@@ -210,7 +218,7 @@ int main(void)
 		  // --- Create new video screen ---
 	      video_screen = lv_obj_create(NULL);
 	      lv_screen_load(video_screen);
-	      lv_obj_set_style_bg_color(video_screen, lv_color_black(), 0);
+	      lv_obj_set_style_bg_color(video_screen, lv_color_white(), 0);
 
 	      // Initialize JPEG tables (important for STM32 JPEG hardware)
 	      JPEG_InitColorTables();
@@ -243,14 +251,14 @@ int main(void)
 	    	  uint32_t frame_size;
 
 	    	  if (avi_get_frame(&avi, frame_idx, &frame_buf, &frame_size) == 0 && frame_size > 0) {
-	    		  static uint8_t rgb_buffer[800 * 480 * 2];
-	    		  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, 800, 480);
+	    		  static uint8_t rgb_buffer[video_h * video_w * 2];
+	    		  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, video_h, video_w);
 
 	    		  lv_img_dsc_t img_dsc = {
 	    				  .header.cf = LV_COLOR_FORMAT_RGB565,
-	                      .header.w = 800,
-	                      .header.h = 480,
-	                      .data_size = 800 * 480 * 2,
+	                      .header.w = video_h,
+	                      .header.h = video_w,
+	                      .data_size = video_h * video_w * 2,
 	                      .data = (const uint8_t *)rgb_buffer
 	    		  };
 
@@ -561,7 +569,26 @@ static void MX_HSPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN HSPI1_Init 2 */
+    MX66UW1G45G_ResetEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+    MX66UW1G45G_ResetMemory(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+    HAL_Delay(MX66UW1G45G_RESET_MAX_TIME);
 
+    /* Enable write operations */
+    MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+
+    /* Write Configuration register 2 (with new dummy cycles) */
+    MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG3_ADDR, MX66UW1G45G_CR2_DC_6_CYCLES);
+
+    /* Enable write operations */
+    MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+
+    /* Write Configuration register 2 (with Octal I/O SPI protocol) */
+    MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
+
+    /* Wait that the configuration is effective and check that memory is ready */
+    HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+
+    MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
   /* USER CODE END HSPI1_Init 2 */
 
 }

@@ -16,7 +16,7 @@
 #include "2d_screen.h"
 #include "svg_screen.h"
 #include "text_scroll.h"
-//#include "video_demo.h"
+#include "video_demo.h"
 /*********************
  *      DEFINES
  *********************/
@@ -336,7 +336,7 @@ lv_obj_t * main_screen_start(void)
     lv_obj_add_event_cb(btn_2d, button_2d_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_svg, button_svg_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_text_scroll, text_scroll_button_event_cb, LV_EVENT_CLICKED, NULL);
-//    lv_obj_add_event_cb(btn_alpha, video_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn_alpha, video_button_event_cb, LV_EVENT_CLICKED, NULL);
 
     LV_TRACE_OBJ_CREATE("finished");
 

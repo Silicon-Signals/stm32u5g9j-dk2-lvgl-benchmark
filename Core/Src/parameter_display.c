@@ -120,7 +120,7 @@ static void create_static_param_screen(lv_obj_t * screen, char *test_label, char
 
     // Create home button
     lv_obj_t *home_btn = lv_btn_create(screen);
-    lv_obj_set_size(home_btn, 66, 66); // Width: 60px, Height: 64px
+    lv_obj_set_size(home_btn, 60, 64); // Width: 60px, Height: 64px
     lv_obj_set_pos(home_btn, 369, 378);
     lv_obj_set_style_radius(home_btn, LV_RADIUS_CIRCLE, 0);
 
