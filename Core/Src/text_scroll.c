@@ -30,7 +30,7 @@ static void auto_return_cb(lv_timer_t * timer) {
 // Animation execution callback
 static void scroll_exec_cb(void * obj, int32_t v)
 {
-    lv_obj_scroll_to_y(obj, v, LV_ANIM_ON);
+    lv_obj_set_y(obj, -v);
 }
 
 // Animation ready callback — jump back to top and restart instantly
@@ -49,8 +49,6 @@ static void scroll_ready_cb(lv_anim_t * a)
 static void start_scroll_animation(void)
 {
     if (!scroll_obj) return;
-
-    lv_obj_update_layout(scroll_obj);
 
     int32_t scrollable = lv_obj_get_scroll_bottom(scroll_obj);
 
