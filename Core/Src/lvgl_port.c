@@ -44,13 +44,13 @@ void lvgl_port_init(void)
 
     lv_tick_set_cb(HAL_GetTick);
 
-#if 1
+#if 0
     static __attribute__((aligned(32))) uint8_t buf_direct_2[800 * 480 * 2];
     lv_st_ltdc_create_direct((void *)0x20000000, buf_direct_2, 0);
 #else
-    static __attribute__((aligned(32))) uint8_t buf_partial_1[800 * 480];
-    static __attribute__((aligned(32))) uint8_t buf_partial_2[800 * 480];
-    lv_st_ltdc_create_partial(buf_partial_1, buf_partial_2, 800 * 480, 0);
+    static __attribute__((aligned(32))) uint8_t buf_partial_1[800 * 100];
+    // static __attribute__((aligned(32))) uint8_t buf_partial_2[800 * 480];
+    lv_st_ltdc_create_partial(buf_partial_1, NULL, 800 * 480, 0);
 #endif
 
     lv_indev_t * indev = lv_indev_create();
