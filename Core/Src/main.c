@@ -54,8 +54,8 @@ static lv_timer_t *close_timer = NULL;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define video_h  800
-#define video_w  480
+#define video_w  800
+#define video_h  480
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -251,13 +251,13 @@ int main(void)
 	    	  uint32_t frame_size;
 
 	    	  if (avi_get_frame(&avi, frame_idx, &frame_buf, &frame_size) == 0 && frame_size > 0) {
-	    		  static uint8_t rgb_buffer[video_h * video_w * 2];
+	    		  static uint8_t rgb_buffer[video_h * video_w * 2]__attribute__((section(".ram2_bss")));
 	    		  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, video_h, video_w);
 
 	    		  lv_img_dsc_t img_dsc = {
 	    				  .header.cf = LV_COLOR_FORMAT_RGB565,
-	                      .header.w = video_h,
-	                      .header.h = video_w,
+	                      .header.w = video_w,
+	                      .header.h = video_h,
 	                      .data_size = video_h * video_w * 2,
 	                      .data = (const uint8_t *)rgb_buffer
 	    		  };

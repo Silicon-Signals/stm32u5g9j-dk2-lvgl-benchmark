@@ -26,19 +26,6 @@ void debug_hex(const uint8_t *data, uint32_t len, uint32_t offset) {
     }
 }
 
-static inline uint16_t YUV2RGB565(int Y, int U, int V)
-{
-    int r = Y + 1.402f * (V - 128);
-    int g = Y - 0.344f * (U - 128) - 0.714f * (V - 128);
-    int b = Y + 1.772f * (U - 128);
-
-    if (r < 0) r = 0; else if (r > 255) r = 255;
-    if (g < 0) g = 0; else if (g > 255) g = 255;
-    if (b < 0) b = 0; else if (b > 255) b = 255;
-
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-}
-
 void JPEG_DecodeToRGB565(JPEG_HandleTypeDef *hjpeg, const uint8_t *jpeg_data, uint32_t jpeg_size, uint8_t *rgb565_dest, uint32_t width, uint32_t height)
 {
     HAL_StatusTypeDef status;
@@ -76,21 +63,6 @@ void JPEG_DecodeToRGB565(JPEG_HandleTypeDef *hjpeg, const uint8_t *jpeg_data, ui
 
     // Wait until done
     while (HAL_JPEG_GetState(hjpeg) != HAL_JPEG_STATE_READY) {}
-
-    // Manual conversion loop for YUV420
-    uint8_t *Y = jpeg_output_buffer;
-    uint8_t *U = Y + width * height;
-    uint8_t *V = U + (width * height / 4);
-
-    for (uint32_t j = 0; j < height; j++) {
-        for (uint32_t i = 0; i < width; i++) {
-            uint32_t Y_index = j * width + i;
-            uint32_t U_index = (j / 2) * (width / 2) + (i / 2);
-            uint32_t V_index = U_index;
-            uint16_t pixel = YUV2RGB565(Y[Y_index], U[U_index], V[V_index]);
-            ((uint16_t *)rgb565_dest)[Y_index] = pixel;
-        }
-    }
 
     // Step 4: Convert from YUV → RGB565
     uint32_t convertedBytes = 0;

@@ -151,6 +151,13 @@ SECTIONS
 
   } >RAM AT> FLASH
 
+  .ram2_bss (NOLOAD) :
+  {
+          . = ALIGN(4);
+          *(.ram2_bss*)
+          . = ALIGN(4);
+ } >RAM2
+
   /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
   .bss :
