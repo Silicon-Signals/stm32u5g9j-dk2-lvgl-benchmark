@@ -8,6 +8,7 @@
 #include "parameter_display.h"
 
 static lv_obj_t *scroll_obj = NULL;
+static lv_obj_t *text_container = NULL;
 
 #define SCROLL_TIME 10000  // total time for one full scroll cycle
 
@@ -50,12 +51,11 @@ static void start_scroll_animation(void)
 {
     if (!scroll_obj) return;
 
-    int32_t scrollable = lv_obj_get_scroll_bottom(scroll_obj);
-
+    lv_obj_update_layout(text_container);
     lv_anim_init(&scroll_anim);
-    lv_anim_set_var(&scroll_anim, scroll_obj);
+    lv_anim_set_var(&scroll_anim, text_container);
     lv_anim_set_exec_cb(&scroll_anim, scroll_exec_cb);
-    lv_anim_set_values(&scroll_anim, 0, scrollable);
+    lv_anim_set_values(&scroll_anim, 0, lv_obj_get_height(text_container) - 480);
     lv_anim_set_time(&scroll_anim, SCROLL_TIME);
     lv_anim_set_path_cb(&scroll_anim, lv_anim_path_linear);
     lv_anim_set_ready_cb(&scroll_anim, scroll_ready_cb);
@@ -73,11 +73,12 @@ void text_scroll(void)
     lv_obj_set_style_bg_opa(scroll_obj, LV_OPA_COVER, 0);
     lv_obj_set_scroll_dir(scroll_obj, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(scroll_obj, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_style_pad_all(scroll_obj, 0, 0);
+    lv_obj_set_style_pad_all(scroll_obj, 1, 0);
     lv_obj_set_style_border_width(scroll_obj, 0, 0);
+    lv_obj_set_style_radius(scroll_obj, 0, 0);
 
     // Transparent text container
-    lv_obj_t *text_container = lv_obj_create(scroll_obj);
+    text_container = lv_obj_create(scroll_obj);
     lv_obj_set_size(text_container, 800, LV_SIZE_CONTENT);
     lv_obj_align(text_container, LV_ALIGN_TOP_MID, 0, 10);
     lv_obj_set_style_bg_opa(text_container, LV_OPA_TRANSP, 0);
