@@ -172,7 +172,7 @@
      * - gradients use RGB888
      * - bitmaps with transparency may use ARGB8888
      */
-    #define LV_DRAW_SW_SUPPORT_RGB565       0
+    #define LV_DRAW_SW_SUPPORT_RGB565       1
     #define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED       0
     #define LV_DRAW_SW_SUPPORT_RGB565A8     0
     #define LV_DRAW_SW_SUPPORT_RGB888       0
@@ -610,9 +610,13 @@
 #define LV_FONT_MONTSERRAT_48 0
 #define LV_FONT_CALIBRI_BOLD_14 1
 #define LV_FONT_CALIBRI_BOLD_44 1
+#define LV_FONT_CALIBRI_REGULAR_15 1
 #define LV_FONT_CALIBRI_REGULAR_18 1
 #define LV_FONT_CALIBRI_REGULAR_25 1
 #define LV_FONT_CALIBRI_BOLD_18 1
+#define LV_FONT_CALIBRI_BOLD_25 1
+#define LV_FONT_DIGITAL_ITALIC_30 1
+#define LV_FONT_DIGITAL_ITALIC_55 1
 
 /* Demonstrate special features */
 #define LV_FONT_MONTSERRAT_28_COMPRESSED    0  /**< bpp = 3 */
