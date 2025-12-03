@@ -4,9 +4,10 @@
  *  Created on: Sep 29, 2025
  *      Author: prutha
  */
-
+#include <stdio.h>
 #include "static_screen.h"
 #include "parameter_display.h"
+#include "benchmark_results.h"
 
 // Shapes and timers
 static lv_obj_t *circle_obj;
@@ -14,8 +15,11 @@ static lv_obj_t *square_obj;
 static lv_obj_t *rect_obj;
 static lv_obj_t *alpha_circle_obj;
 static lv_obj_t *alpha_square_obj;
+static lv_obj_t *new_screen;
+
 static lv_timer_t *color_timer;
 static lv_timer_t *screen_timer;
+
 static int color_index = 0;
 static lv_obj_t *new_screen;
 
@@ -53,7 +57,15 @@ static void color_timer_cb(lv_timer_t * timer) {
 // Return to home screen after 10s
 static void auto_return_cb(lv_timer_t * timer) {
     if(color_timer) lv_timer_del(color_timer);
-    static_param_screen_init("Static Test", "28", "12 KB", "78 KB", "0.5 ms", "16 %");
+    char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
+
+    snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
+    snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
+    snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
+    snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
+    snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
+
+    static_param_screen_init("Static Test", fps_str, stack_str, heap_str, render_str, cpu_str);
 
     if(new_screen) {
         lv_obj_del(new_screen);
@@ -68,6 +80,8 @@ static void auto_return_cb(lv_timer_t * timer) {
 
 // Static Button Event
 void static_button_event_cb(lv_event_t * e) {
+	demo_running = 1;
+
     // Create new screen
     new_screen = lv_obj_create(NULL);
 

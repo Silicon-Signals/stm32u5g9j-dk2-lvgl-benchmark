@@ -4,10 +4,13 @@
  *  Created on: Oct 16, 2025
  *      Author: prutha
  */
+#include <stdio.h>
 #include "text_scroll.h"
 #include "parameter_display.h"
+#include "benchmark_results.h"
 
 static lv_obj_t *scroll_obj = NULL;
+static lv_obj_t *text_container = NULL;
 
 #define SCROLL_TIME 10000  // total time for one full scroll cycle
 
@@ -15,10 +18,19 @@ static lv_anim_t scroll_anim;
 static lv_timer_t *text_timer;
 
 // Return to home screen after 10s
-static void auto_return_cb(lv_timer_t * timer) {
-    static_param_screen_init("Text Scroll Test", "28", "12 KB", "78 KB", "0.5 ms", "16 %");
+static void auto_return_cb(lv_timer_t * timer)
+{
+    char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
 
-    if(scroll_obj) {
+    snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
+    snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
+    snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
+    snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
+    snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
+
+    static_param_screen_init("Text Scroll Test", fps_str, stack_str, heap_str, render_str, cpu_str);
+
+    if (scroll_obj) {
         lv_obj_del(scroll_obj);
         scroll_obj = NULL;
     }
@@ -30,7 +42,7 @@ static void auto_return_cb(lv_timer_t * timer) {
 // Animation execution callback
 static void scroll_exec_cb(void * obj, int32_t v)
 {
-    lv_obj_scroll_to_y(obj, v, LV_ANIM_ON);
+    lv_obj_set_y(obj, -v);
 }
 
 // Animation ready callback — jump back to top and restart instantly
@@ -50,14 +62,11 @@ static void start_scroll_animation(void)
 {
     if (!scroll_obj) return;
 
-    lv_obj_update_layout(scroll_obj);
-
-    int32_t scrollable = lv_obj_get_scroll_bottom(scroll_obj);
-
+    lv_obj_update_layout(text_container);
     lv_anim_init(&scroll_anim);
-    lv_anim_set_var(&scroll_anim, scroll_obj);
+    lv_anim_set_var(&scroll_anim, text_container);
     lv_anim_set_exec_cb(&scroll_anim, scroll_exec_cb);
-    lv_anim_set_values(&scroll_anim, 0, scrollable);
+    lv_anim_set_values(&scroll_anim, 0, lv_obj_get_height(text_container) - 480);
     lv_anim_set_time(&scroll_anim, SCROLL_TIME);
     lv_anim_set_path_cb(&scroll_anim, lv_anim_path_linear);
     lv_anim_set_ready_cb(&scroll_anim, scroll_ready_cb);
@@ -75,11 +84,12 @@ void text_scroll(void)
     lv_obj_set_style_bg_opa(scroll_obj, LV_OPA_COVER, 0);
     lv_obj_set_scroll_dir(scroll_obj, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(scroll_obj, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_style_pad_all(scroll_obj, 0, 0);
+    lv_obj_set_style_pad_all(scroll_obj, 1, 0);
     lv_obj_set_style_border_width(scroll_obj, 0, 0);
+    lv_obj_set_style_radius(scroll_obj, 0, 0);
 
     // Transparent text container
-    lv_obj_t *text_container = lv_obj_create(scroll_obj);
+    text_container = lv_obj_create(scroll_obj);
     lv_obj_set_size(text_container, 800, LV_SIZE_CONTENT);
     lv_obj_align(text_container, LV_ALIGN_TOP_MID, 0, 10);
     lv_obj_set_style_bg_opa(text_container, LV_OPA_TRANSP, 0);
@@ -161,5 +171,7 @@ void text_scroll(void)
 
 void text_scroll_button_event_cb(lv_event_t * e)
 {
+	demo_running = 1;
+
 	text_scroll();
 }

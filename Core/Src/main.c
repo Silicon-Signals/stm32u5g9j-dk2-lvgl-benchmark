@@ -28,9 +28,6 @@
 #include "lvgl/demos/lv_demos.h"
 #include "lvgl/examples/lv_examples.h"
 #include "main_scr.h"
-#include "avi_parser.h"
-#include "output_mjpeg_800x480.h"
-#include "output_mjpeg_320x240.h"
 #include "string.h"
 #include "stdio.h"
 #include "video_demo.h"
@@ -38,12 +35,7 @@
 #include "parameter_display.h"
 #include "stm32u5xx.h"
 #include "mx66uw1g45g.h"
-
-avi_t avi;
-int video = 1;
-static lv_obj_t *video_screen = NULL;
-static lv_obj_t *video_img = NULL;
-static lv_timer_t *close_timer = NULL;
+#include "perf_monitor.h"
 
 /* USER CODE END Includes */
 
@@ -54,8 +46,8 @@ static lv_timer_t *close_timer = NULL;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define video_w  800
-#define video_h  480
+#define video_h  800
+#define video_w  480
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,9 +77,35 @@ DMA_HandleTypeDef handle_GPDMA1_Channel0;
 LTDC_HandleTypeDef hltdc;
 
 UART_HandleTypeDef huart1;
+TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
+//linker varibles
+extern uint32_t _edata;
+extern uint32_t _sdata;
+extern uint32_t _ebss;
+extern uint32_t _sbss;
 
+// Timer base for 1 ms by timer 6 (default)
+volatile uint32_t ms_counter = 0;
+
+// FPS variables
+volatile uint32_t frame_counter = 0;    // counts VSYNCs
+
+// Render Time variables
+volatile uint32_t render_start_ms = 0;
+volatile uint32_t render_end_ms = 0;
+volatile uint32_t render_time = 0;
+
+// Start-up Time variables
+volatile uint32_t boot_start = 0;
+volatile uint32_t boot_stop = 0;
+volatile uint32_t boot_time = 0;
+volatile uint32_t boot_flag = 1;
+
+uint32_t cpu_load = 0;
+
+uint32_t transit_clock_ms = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,32 +126,15 @@ static void MX_I2C2_Init(void);
 static void MX_JPEG_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+extern void vTaskGetRunTimeStats( char * pcWriteBuffer );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//__attribute__((section(".ExtFlashSection"))) uint8_t rgb_buffer[800 * 480 * 2];
-static void hide_video_screen_cb(lv_timer_t *timer)
+// LTDC line event call back function
+void HAL_LTDC_LineEventCallback(LTDC_HandleTypeDef *hltdc)
 {
-    // Initialize parameter screen
-    static_param_screen_init("Video test", "28", "12 KB", "78 KB", "0.5 ms", "15 %");
-
-    // Delete video screen and free memory
-    if (video_screen) {
-        lv_obj_del(video_screen);
-        video_screen = NULL;
-        video_img = NULL;
-    }
-
-    // Delete timer itself
-    if (timer) {
-        lv_timer_del(timer);
-    }
-
-    close_timer = NULL;
 }
-
 /* USER CODE END 0 */
 
 /**
@@ -160,6 +161,8 @@ int main(void)
   SystemPower_Config();
 
   /* Configure the system clock */
+  transit_clock_ms = DWT->CYCCNT;
+  DWT->CYCCNT = 0;
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
@@ -183,18 +186,30 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   lvgl_port_init();
+
+  JPEG_InitColorTables();
+  perf_monitor_create();
+  perf_monitor_start();
+
   lv_obj_t * out = main_screen_start();
   lv_scr_load(out);
+
+  // LTDC setup to enable Interrupt
+  __HAL_LTDC_ENABLE_IT(&hltdc, LTDC_IT_LI);		// Enable LTDC line interrupt
+  HAL_LTDC_ProgramLineEvent(&hltdc, 0);			// Select the line to trigger event
+  HAL_NVIC_SetPriority(LTDC_IRQn, 0, 0);		// Enable NVIC line interrupt
+  HAL_NVIC_EnableIRQ(LTDC_IRQn);				// NVIC LTDC IRQ enable
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
-//  osKernelInitialize();
-//
-//  /* Call init function for freertos objects (in cmsis_os2.c) */
-//  MX_FREERTOS_Init();
-//
-//  /* Start scheduler */
-//  osKernelStart();
+  osKernelInitialize();
+
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -209,75 +224,6 @@ int main(void)
 
 	  lv_timer_handler();
 	  HAL_Delay(1);
-
-	  if (video == 0)
-	  {
-		  // Reset flag to avoid re-entry
-		  video = 1;
-
-		  // --- Create new video screen ---
-	      video_screen = lv_obj_create(NULL);
-	      lv_screen_load(video_screen);
-	      lv_obj_set_style_bg_color(video_screen, lv_color_white(), 0);
-
-	      // Initialize JPEG tables (important for STM32 JPEG hardware)
-	      JPEG_InitColorTables();
-
-	      // Initialize AVI file
-	      if (avi_init(&avi, output_mjpeg_800x480_avi, output_mjpeg_800x480_avi_len) != 0) {
-	    	  lv_obj_t *label = lv_label_create(video_screen);
-	    	  lv_label_set_text(label, "AVI Init Failed");
-	    	  lv_obj_center(label);
-	    	  HAL_UART_Transmit(&huart1, (uint8_t *)"AVI Init Failed\r\n", 16, 100);
-	    	  continue;
-	      }
-
-	      char log[64];
-	      snprintf(log, sizeof(log), "AVI: %ldx%ld, %ld frames, %ld FPS\r\n",
-	                   avi.width, avi.height, avi.frame_count, avi.fps);
-	      HAL_UART_Transmit(&huart1, (uint8_t *)log, strlen(log), 100);
-
-	      // Create LVGL image object to show video frames
-	      video_img = lv_image_create(video_screen);
-	      lv_obj_center(video_img);
-
-	      uint32_t frame_idx = 0;
-	      uint32_t start_time = HAL_GetTick();
-
-	      // --- Playback loop for 10 seconds ---
-	      while (HAL_GetTick() - start_time < 10000)
-	      {
-	    	  const uint8_t *frame_buf;
-	    	  uint32_t frame_size;
-
-	    	  if (avi_get_frame(&avi, frame_idx, &frame_buf, &frame_size) == 0 && frame_size > 0) {
-	    		  static uint8_t rgb_buffer[video_h * video_w * 2]__attribute__((section(".ram2_bss")));
-	    		  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, video_h, video_w);
-
-	    		  lv_img_dsc_t img_dsc = {
-	    				  .header.cf = LV_COLOR_FORMAT_RGB565,
-	                      .header.w = video_w,
-	                      .header.h = video_h,
-	                      .data_size = video_h * video_w * 2,
-	                      .data = (const uint8_t *)rgb_buffer
-	    		  };
-
-	                  lv_img_set_src(video_img, &img_dsc);
-	              }
-
-	              frame_idx = (frame_idx + 1) % avi.frame_count;
-
-	              uint32_t delay_ms = 1000 / avi.fps;
-	              uint32_t now = HAL_GetTick();
-	              while (HAL_GetTick() - now < delay_ms) {
-	                  lv_timer_handler();
-	                  HAL_Delay(1);
-	              }
-	          }
-
-	          // After 10s → schedule cleanup and switch screen
-	          close_timer = lv_timer_create(hide_video_screen_cb, 1, NULL);
-	      }
   }
 
 
@@ -569,26 +515,26 @@ static void MX_HSPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN HSPI1_Init 2 */
-    MX66UW1G45G_ResetEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
-    MX66UW1G45G_ResetMemory(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
-    HAL_Delay(MX66UW1G45G_RESET_MAX_TIME);
+  MX66UW1G45G_ResetEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  MX66UW1G45G_ResetMemory(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  HAL_Delay(MX66UW1G45G_RESET_MAX_TIME);
 
-    /* Enable write operations */
-    MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  /* Enable write operations */
+  MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
 
-    /* Write Configuration register 2 (with new dummy cycles) */
-    MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG3_ADDR, MX66UW1G45G_CR2_DC_6_CYCLES);
+  /* Write Configuration register 2 (with new dummy cycles) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG3_ADDR, MX66UW1G45G_CR2_DC_6_CYCLES);
 
-    /* Enable write operations */
-    MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  /* Enable write operations */
+  MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
 
-    /* Write Configuration register 2 (with Octal I/O SPI protocol) */
-    MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
+  /* Write Configuration register 2 (with Octal I/O SPI protocol) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
 
-    /* Wait that the configuration is effective and check that memory is ready */
-    HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+  /* Wait that the configuration is effective and check that memory is ready */
+  HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
 
-    MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
+  MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
   /* USER CODE END HSPI1_Init 2 */
 
 }

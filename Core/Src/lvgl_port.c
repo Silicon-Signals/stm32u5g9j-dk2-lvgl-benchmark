@@ -8,6 +8,7 @@
 #include "main.h"
 
 extern I2C_HandleTypeDef hi2c2;
+uint32_t frame_buffer_size = 0;
 
 /*********************
  *      DEFINES
@@ -46,6 +47,7 @@ void lvgl_port_init(void)
 
 #if 1
     static __attribute__((aligned(32))) uint8_t buf_direct_2[800 * 480 * 2];
+    frame_buffer_size = sizeof(buf_direct_2);
     lv_st_ltdc_create_direct((void *)0x20000000, buf_direct_2, 0);
 #else
     static __attribute__((aligned(32))) uint8_t buf_partial_1[800 * 480];

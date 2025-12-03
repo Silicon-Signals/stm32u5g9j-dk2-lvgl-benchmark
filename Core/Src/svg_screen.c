@@ -4,9 +4,10 @@
  *  Created on: Oct 23, 2025
  *      Author: prutha
  */
-
+#include <stdio.h>
 #include "parameter_display.h"
 #include "svg_screen.h"
+#include "benchmark_results.h"
 
 LV_IMAGE_DECLARE(Tire1);
 LV_IMAGE_DECLARE(Tire2);
@@ -33,18 +34,27 @@ lv_timer_t *car_tier;
 static int pos_idx[5] = {4, 3, 2, 1, 0};
 
 static lv_point_t positions[5] = {
-		{690, 60},
-		{570, 185},
-		{400, 230},
-		{230, 185},
-		{100, 60}
+		{670, 60},
+		{550, 150},
+		{400, 185},
+		{250, 150},
+		{130, 60}
 };
 static const lv_img_dsc_t *tire_images[5] = {&tire_pair1, &tire_pair2, &tire_pair3, &tire_pair4, &tire_pair5};
 static int tire_w, tire_h;
 
 static void hide_svg_screen_cb(lv_timer_t *timer) {
      if(car_tier) lv_timer_del(car_tier);
-     static_param_screen_init("SVG test", "28", "12 KB", "78 KB", "0.5 ms", "15 %");
+     char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
+
+     snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
+     snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
+     snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
+     snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
+     snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
+
+     static_param_screen_init("SVG Test", fps_str, stack_str, heap_str, render_str, cpu_str);
+
 
      if(screen_svg) {
          lv_obj_del(screen_svg);
@@ -66,16 +76,16 @@ void create_svg_scr(void) {
     // Create ellipse image
     lv_obj_t *ellipse = lv_img_create(screen_svg);
     lv_img_set_src(ellipse, &Ellipse);
-    lv_obj_align(ellipse, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_align(ellipse, LV_ALIGN_TOP_MID, 0, -50);
 
     // Create Car image at bottom center
     lv_obj_t *car_image = lv_img_create(screen_svg);
     lv_img_set_src(car_image, &Car_Body);
-    lv_obj_align(car_image, LV_ALIGN_BOTTOM_MID, 0, -50);
+    lv_obj_set_pos(car_image, 183, 271);
 
     car_tire_image = lv_img_create(screen_svg);
     lv_img_set_src(car_tire_image, tire_images[2]); // Initially set to the center tire (Tire3)
-    lv_obj_align(car_tire_image, LV_ALIGN_BOTTOM_MID, 5, -38);
+    lv_obj_set_pos(car_tire_image, 219, 314);
 
     // Tire image descriptors
     const lv_img_dsc_t *srcs[5] = {&Tire1, &Tire2, &Tire3, &Tire4, &Tire5};
@@ -90,7 +100,7 @@ void create_svg_scr(void) {
     }
 
     // Create timer for animation every 0.5 seconds
-    car_tier = lv_timer_create(shift_callback, 500, NULL);
+    car_tier = lv_timer_create(shift_callback, 700, NULL);
 }
 
 static void anim_x_cb(void *var, int32_t v) {
@@ -119,7 +129,7 @@ static void shift_callback(lv_timer_t *timer) {
         lv_anim_set_values(&a_x, start_x, end_x);
         lv_anim_set_exec_cb(&a_x, anim_x_cb);
         lv_anim_set_path_cb(&a_x, lv_anim_path_ease_in_out);
-        lv_anim_set_time(&a_x, 250);
+        lv_anim_set_time(&a_x, 350);
         lv_anim_start(&a_x);
 
         // Animate y
@@ -129,7 +139,7 @@ static void shift_callback(lv_timer_t *timer) {
         lv_anim_set_values(&a_y, start_y, end_y);
         lv_anim_set_exec_cb(&a_y, anim_y_cb);
         lv_anim_set_path_cb(&a_y, lv_anim_path_ease_in_out);
-        lv_anim_set_time(&a_y, 250);
+        lv_anim_set_time(&a_y, 350);
         lv_anim_start(&a_y);
     }
 
@@ -139,6 +149,8 @@ static void shift_callback(lv_timer_t *timer) {
 
 void button_svg_event_cb(lv_event_t * e)
 {
+	demo_running = 1;
+
     // Create new screen
     screen_svg = lv_obj_create(NULL);
     lv_scr_load(screen_svg);

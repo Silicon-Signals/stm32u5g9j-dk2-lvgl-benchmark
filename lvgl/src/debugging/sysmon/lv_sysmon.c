@@ -9,6 +9,7 @@
 
 #include "lv_sysmon_private.h"
 #include "../../misc/lv_timer_private.h"
+#include "main.h"
 
 #if LV_USE_SYSMON
 
@@ -53,7 +54,16 @@
 /**********************
  *  STATIC VARIABLES
  **********************/
-
+extern uint32_t frame_counter;
+// Render Time variables
+extern volatile uint32_t render_end_ms;
+extern volatile uint32_t render_start_ms;
+extern volatile uint32_t render_time;
+extern volatile uint32_t boot_start;
+extern volatile uint32_t boot_stop;
+extern volatile uint32_t boot_time;
+extern volatile uint32_t boot_flag;
+extern uint32_t transit_clock_ms;
 /**********************
  *      MACROS
  **********************/
@@ -90,10 +100,11 @@ lv_obj_t * lv_sysmon_create(lv_display_t * disp)
 
     lv_obj_t * label = lv_label_create(lv_display_get_layer_sys(disp));
     lv_obj_set_style_bg_opa(label, LV_OPA_50, 0);
+    lv_obj_set_size(label, 0, 0);
     lv_obj_set_style_bg_color(label, lv_color_black(), 0);
     lv_obj_set_style_text_color(label, lv_color_white(), 0);
     lv_obj_set_style_pad_all(label, 3, 0);
-    lv_label_set_text(label, "?");
+    lv_label_set_text(label, "");
     return label;
 }
 
@@ -216,14 +227,23 @@ static void perf_monitor_disp_event_cb(lv_event_t * e)
             info->measured.refr_start = lv_tick_get();
             break;
         case LV_EVENT_REFR_READY:
+        	frame_counter++;
+            if (boot_flag) {
+            	boot_stop = DWT->CYCCNT;
+            	boot_time = ((transit_clock_ms)/4000) + ((boot_stop)/160000); 			//HAL_GetTick();				//(((boot_stop - boot_start) * 1000) / SystemCoreClock);	// boot time = ((cycle * 1000) / SystemCoreClock)
+            	boot_flag = 0;
+            }
             info->measured.refr_elaps_sum += lv_tick_elaps(info->measured.refr_start);
             info->measured.refr_cnt++;
             break;
         case LV_EVENT_RENDER_START:
+        	render_start_ms = HAL_GetTick();
             info->measured.render_in_progress = 1;
             info->measured.render_start = lv_tick_get();
             break;
         case LV_EVENT_RENDER_READY:
+        	render_end_ms = HAL_GetTick();
+        	render_time = render_end_ms - render_start_ms;
             info->measured.render_in_progress = 0;
             info->measured.render_elaps_sum += lv_tick_elaps(info->measured.render_start);
             info->measured.render_cnt++;
@@ -315,7 +335,7 @@ static void perf_update_timer_cb(lv_timer_t * t)
 
 static void perf_observer_cb(lv_observer_t * observer, lv_subject_t * subject)
 {
-    const lv_sysmon_perf_info_t * perf = lv_subject_get_pointer(subject);
+//    const lv_sysmon_perf_info_t * perf = lv_subject_get_pointer(subject);
 
 #if LV_USE_PERF_MONITOR_LOG_MODE
     LV_UNUSED(observer);
@@ -337,7 +357,7 @@ static void perf_observer_cb(lv_observer_t * observer, lv_subject_t * subject)
            perf->calculated.cpu);
 #endif
 #else
-    lv_obj_t * label = lv_observer_get_target(observer);
+//    lv_obj_t * label = lv_observer_get_target(observer);
 #if LV_SYSMON_PROC_IDLE_AVAILABLE
     lv_label_set_text_fmt(
         label,
@@ -348,14 +368,14 @@ static void perf_observer_cb(lv_observer_t * observer, lv_subject_t * subject)
         perf->calculated.render_avg_time, perf->calculated.flush_avg_time
     );
 #else
-    lv_label_set_text_fmt(
-        label,
-        "%" LV_PRIu32" FPS, %" LV_PRIu32 "%% CPU\n"
-        "%" LV_PRIu32" ms (%" LV_PRIu32" | %" LV_PRIu32")",
-        perf->calculated.fps, perf->calculated.cpu,
-        perf->calculated.render_avg_time + perf->calculated.flush_avg_time,
-        perf->calculated.render_avg_time, perf->calculated.flush_avg_time
-    );
+//    lv_label_set_text_fmt(
+//        label,
+//        "%" LV_PRIu32" FPS, %" LV_PRIu32 "%% CPU\n"
+//        "%" LV_PRIu32" ms (%" LV_PRIu32" | %" LV_PRIu32")",
+//        perf->calculated.fps, perf->calculated.cpu,
+//        perf->calculated.render_avg_time + perf->calculated.flush_avg_time,
+//        perf->calculated.render_avg_time, perf->calculated.flush_avg_time
+//    );
 #endif /*LV_SYSMON_PROC_IDLE_AVAILABLE*/
 #endif /*LV_USE_PERF_MONITOR_LOG_MODE*/
 }

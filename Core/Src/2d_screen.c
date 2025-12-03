@@ -7,6 +7,8 @@
 
 #include "2d_screen.h"
 #include "parameter_display.h"
+#include "benchmark_results.h"
+#include <stdio.h>
 
 LV_IMAGE_DECLARE(silicon_logo);
 
@@ -19,16 +21,30 @@ static lv_anim_t anim_rotate;
 
 static lv_timer_t *bottom_move_timer;
 static int move_phase = 0;
+static int step_count = 0;
+static bool going_out = true;
 
 static void hide_2d_screen_cb(lv_timer_t *timer)
 {
 	if(bottom_move_timer) lv_timer_del(bottom_move_timer);
-    static_param_screen_init("2D test", "28", "12 KB", "78 KB", "0.5 ms", "15 %");
+    char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
+
+    snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
+    snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
+    snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
+    snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
+    snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
+
+    static_param_screen_init("2D Test", fps_str, stack_str, heap_str, render_str, cpu_str);
+
 
     if(screen_2d) {
         lv_obj_del(screen_2d);
         screen_2d = NULL;
     }
+
+    move_phase = 0;
+    step_count = 0;
 
     lv_timer_del(timer);
     close_timer = NULL;
@@ -52,80 +68,47 @@ static void move_bottom_logos(int dx, int dy)
 // Timer callback to move bottom 3 logos
 static void bottom_move_cb(lv_timer_t *timer)
 {
-    const int step = 5;
-    const int max_distance = 10;
-    const int pause_duration = 15;
+    const int STEP_PX = 1;
+    const int STEPS_PER_DIRECTION = 50;
 
-    static int move_count = 0;
-    static bool returning = false;
-    static int pause_count = 0;
-    static bool pausing = false;
+    int dx = 0, dy = 0;
 
-    if (pausing) {
-    	pause_count++;
-    	if (pause_count >= pause_duration) {
-    		pausing = false;
-    		pause_count = 0;
-    		move_phase = (move_phase + 1) % 4;
-    	}
-    	return;
-    }
-
-    if (!returning) {
-        // Moving away from original position
+    if (going_out) {
+        // Moving away from center
         switch (move_phase) {
-            case 0: // Down
-                move_bottom_logos(0, step);
-                break;
-            case 1: // Right
-                move_bottom_logos(step, 0);
-                break;
-            case 2: // Left
-                move_bottom_logos(-step, 0);
-                break;
-            case 3: // Up
-                move_bottom_logos(0, -step);
-                break;
-        }
-        move_count++;
-
-        // When max distance reached, start returning
-        if (move_count >= max_distance) {
-            returning = true;
-            move_count = 0;
+            case 0: dy =  STEP_PX; break;
+            case 1: dx =  STEP_PX; break;
+            case 2: dx = -STEP_PX; break;
+            case 3: dy = -STEP_PX; break;
         }
     } else {
-        // Moving back to original position
+        // Returning To center
         switch (move_phase) {
-            case 0: // Return from Down
-                move_bottom_logos(0, -step);
-                break;
-            case 1: // Return from Right
-                move_bottom_logos(-step, 0);
-                break;
-            case 2: // Return from Left
-                move_bottom_logos(step, 0);
-                break;
-            case 3: // Return from Up
-                move_bottom_logos(0, step);
-                break;
+            case 0: dy = -STEP_PX; break;
+            case 1: dx = -STEP_PX; break;
+            case 2: dx =  STEP_PX; break;
+            case 3: dy =  STEP_PX; break;
         }
-        move_count++;
+    }
 
-        // When returned to original position, move to next phase
-        if (move_count >= max_distance) {
-                    returning = false;
-                    move_count = 0;
-                    pausing = true;
-                    pause_count = 0;
+    move_bottom_logos(dx, dy);
+
+    step_count++;
+
+    if (step_count >= STEPS_PER_DIRECTION) {
+        step_count = 0;
+        if (!going_out) {
+            move_phase = (move_phase + 1) % 4;
         }
+        going_out = !going_out;
     }
 }
 
 // 2D Screen
 void button_2d_event_cb(lv_event_t *e)
 {
-    // Create new screen
+	demo_running = 1;
+
     screen_2d = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen_2d, lv_color_hex(0x12294B), 0);
     lv_scr_load(screen_2d);
