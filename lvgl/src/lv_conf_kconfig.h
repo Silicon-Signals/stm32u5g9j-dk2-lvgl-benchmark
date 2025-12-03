@@ -222,6 +222,28 @@ extern "C" {
 #  define CONFIG_LV_FONT_DEFAULT &lv_font_montserrat_46
 #elif defined(CONFIG_LV_FONT_DEFAULT_MONTSERRAT_48)
 #  define CONFIG_LV_FONT_DEFAULT &lv_font_montserrat_48
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_BOLD_14)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_bold_14
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_BOLD_44)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_bold_44
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_REGULAR_18)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_regular_18
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_REGULAR_25)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_regular_25
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_REGULAR_15)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_regular_15
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_BOLD_18)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_bold_18
+#elif defined(CONFIG_LV_FONT_DEFAULT_CALIBRI_BOLD_25)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_calibri_bold_25
+#elif defined(CONFIG_LV_FONT_DIGITAL_ITALIC_30)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_digital_italic_30
+#elif defined(CONFIG_LV_FONT_SEVEN_SEGMENT_30)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_digital_italic_55
+#elif defined(CONFIG_LV_FONT_SEVEN_SEGMENT_55)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_seven_segment_30
+#elif defined(CONFIG_LV_FONT_SEVEN_SEGMENT_50)
+#  define CONFIG_LV_FONT_DEFAULT &lv_font_seven_segment_50
 #elif defined(CONFIG_LV_FONT_DEFAULT_MONTSERRAT_12_SUBPX)
 #  define CONFIG_LV_FONT_DEFAULT &lv_font_montserrat_12_subpx
 #elif defined(CONFIG_LV_FONT_DEFAULT_MONTSERRAT_28_COMPRESSED)

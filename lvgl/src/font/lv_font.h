@@ -313,6 +313,50 @@ LV_FONT_DECLARE(lv_font_montserrat_46)
 LV_FONT_DECLARE(lv_font_montserrat_48)
 #endif
 
+#if LV_FONT_CALIBRI_BOLD_14
+LV_FONT_DECLARE(lv_font_calibri_bold_14)
+#endif
+
+#if LV_FONT_CALIBRI_BOLD_44
+LV_FONT_DECLARE(lv_font_calibri_bold_44)
+#endif
+
+#if LV_FONT_CALIBRI_REGULAR_15
+LV_FONT_DECLARE(lv_font_calibri_regular_15)
+#endif
+
+#if LV_FONT_CALIBRI_REGULAR_18
+LV_FONT_DECLARE(lv_font_calibri_regular_18)
+#endif
+
+#if LV_FONT_CALIBRI_REGULAR_25
+LV_FONT_DECLARE(lv_font_calibri_regular_25)
+#endif
+
+#if LV_FONT_CALIBRI_BOLD_18
+LV_FONT_DECLARE(lv_font_calibri_bold_18)
+#endif
+
+#if LV_FONT_CALIBRI_BOLD_25
+LV_FONT_DECLARE(lv_font_calibri_bold_25)
+#endif
+
+#if LV_FONT_DIGITAL_ITALIC_30
+LV_FONT_DECLARE(lv_font_digital_italic_30)
+#endif
+
+#if LV_FONT_DIGITAL_ITALIC_55
+LV_FONT_DECLARE(lv_font_digital_italic_55)
+#endif
+
+#if LV_FONT_SEVEN_SEGMENT_30
+LV_FONT_DECLARE(lv_font_seven_segment_30)
+#endif
+
+#if LV_FONT_SEVEN_SEGMENT_50
+LV_FONT_DECLARE(lv_font_seven_segment_50)
+#endif
+
 #if LV_FONT_MONTSERRAT_28_COMPRESSED
 LV_FONT_DECLARE(lv_font_montserrat_28_compressed)
 #endif

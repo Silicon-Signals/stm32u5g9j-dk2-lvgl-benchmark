@@ -1872,6 +1872,93 @@
         #define LV_FONT_MONTSERRAT_48 0
     #endif
 #endif
+#ifndef LV_FONT_CALIBRI_BOLD_14
+    #ifdef CONFIG_LV_FONT_CALIBRI_BOLD_14
+        #define LV_FONT_CALIBRI_BOLD_14 CONFIG_LV_FONT_CALIBRI_BOLD_14
+    #else
+        #define LV_FONT_CALIBRI_BOLD_14 0
+    #endif
+#endif
+#ifndef LV_FONT_CALIBRI_BOLD_44
+    #ifdef CONFIG_LV_FONT_CALIBRI_BOLD_44
+        #define LV_FONT_CALIBRI_BOLD_44 CONFIG_LV_FONT_CALIBRI_BOLD_44
+    #else
+        #define LV_FONT_CALIBRI_BOLD_44 0
+    #endif
+#endif
+
+#ifndef LV_FONT_CALIBRI_REGULAR_18
+    #ifdef CONFIG_LV_FONT_CALIBRI_REGULAR_18
+        #define LV_FONT_CALIBRI_REGULAR_18 CONFIG_LV_FONT_CALIBRI_REGULAR_18
+    #else
+        #define LV_FONT_CALIBRI_REGULAR_18 0
+    #endif
+#endif
+
+#ifndef LV_FONT_CALIBRI_REGULAR_25
+    #ifdef CONFIG_LV_FONT_CALIBRI_REGULAR_25
+        #define LV_FONT_CALIBRI_REGULAR_25 CONFIG_LV_FONT_CALIBRI_REGULAR_25
+    #else
+        #define LV_FONT_CALIBRI_REGULAR_25 0
+    #endif
+#endif
+
+#ifndef LV_FONT_CALIBRI_REGULAR_15
+    #ifdef CONFIG_LV_FONT_CALIBRI_REGULAR_15
+        #define LV_FONT_CALIBRI_REGULAR_15 CONFIG_LV_FONT_CALIBRI_REGULAR_15
+    #else
+        #define LV_FONT_CALIBRI_REGULAR_15 0
+    #endif
+#endif
+
+
+#ifndef LV_FONT_CALIBRI_BOLD_18
+    #ifdef CONFIG_LV_FONT_CALIBRI_BOLD_18
+        #define LV_FONT_CALIBRI_BOLD_18 CONFIG_LV_FONT_CALIBRI_BOLD_18
+    #else
+        #define LV_FONT_CALIBRI_BOLD_18 0
+    #endif
+#endif
+
+#ifndef LV_FONT_CALIBRI_BOLD_25
+    #ifdef CONFIG_LV_FONT_CALIBRI_BOLD_25
+        #define LV_FONT_CALIBRI_BOLD_25 CONFIG_LV_FONT_CALIBRI_BOLD_25
+    #else
+        #define LV_FONT_CALIBRI_BOLD_25 0
+    #endif
+#endif
+
+#ifndef LV_FONT_DIGITAL_ITALIC_30
+    #ifdef CONFIG_LV_FONT_DIGITAL_ITALIC_30
+        #define LV_FONT_DIGITAL_ITALIC_30 CONFIG_LV_FONT_DIGITAL_ITALIC_30
+    #else
+        #define LV_FONT_DIGITAL_ITALIC_30 0
+    #endif
+#endif
+
+#ifndef LV_FONT_DIGITAL_ITALIC_55
+    #ifdef CONFIG_LV_FONT_DIGITAL_ITALIC_55
+        #define LV_FONT_DIGITAL_ITALIC_55 CONFIG_LV_FONT_DIGITAL_ITALIC_55
+    #else
+        #define LV_FONT_DIGITAL_ITALIC_55 0
+    #endif
+#endif
+
+#ifndef LV_FONT_SEVEN_SEGMENT_30
+    #ifdef CONFIG_LV_FONT_SEVEN_SEGMENT_30
+        #define LV_FONT_SEVEN_SEGMENT_30 CONFIG_LV_FONT_SEVEN_SEGMENT_30
+    #else
+        #define LV_FONT_SEVEN_SEGMENT_30 0
+    #endif
+#endif
+
+#ifndef LV_FONT_SEVEN_SEGMENT_50
+    #ifdef CONFIG_LV_FONT_SEVEN_SEGMENT_50
+        #define LV_FONT_SEVEN_SEGMENT_50 CONFIG_LV_FONT_SEVEN_SEGMENT_50
+    #else
+        #define LV_FONT_SEVEN_SEGMENT_50 0
+    #endif
+#endif
 
 /* Demonstrate special features */
 #ifndef LV_FONT_MONTSERRAT_28_COMPRESSED
