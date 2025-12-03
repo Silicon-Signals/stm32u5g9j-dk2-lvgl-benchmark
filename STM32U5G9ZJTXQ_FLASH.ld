@@ -188,12 +188,6 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
   
-  .VideobufferSection :
-  {
-  *(.VideobufferSection .VideobufferSection.*)
-  . = ALIGN(32);
-  } >RAM2
-  
   .ExtFlashSection :
 	{
     *(.ExtFlashSection .ExtFlashSection.*)
