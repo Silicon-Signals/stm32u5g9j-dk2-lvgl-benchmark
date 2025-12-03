@@ -26,22 +26,9 @@
 /* USER CODE BEGIN Includes */
 #include "lvgl/lvgl.h"
 #include "main_scr.h"
-#include "avi_parser.h"
 #include "jpeg_utils.h"
 #include "string.h"
 #include "stdio.h"
-#include "video_demo.h"
-#include "lvgl_port.h"
-#include "parameter_display.h"
-#include "output_mjpeg_800x480.h"
-
-avi_t avi;
-int video = 1;
-static lv_obj_t *video_screen = NULL;
-static lv_obj_t *video_img = NULL;
-static lv_timer_t *close_timer = NULL;
-static uint32_t frame_idx = 0;
-static uint32_t next_frame_time = 0;
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -218,37 +205,7 @@ void MX_FREERTOS_Init(void) {
 * @param argument: Not used
 * @retval None
 */
-static void hide_video_screen_cb(lv_timer_t *timer)
-{
-    char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
 
-    snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
-    snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
-    snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
-    snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
-    snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
-
-    static_param_screen_init("Video Test", fps_str, stack_str, heap_str, render_str, cpu_str);
-
-    if (video_screen) {
-        lv_obj_del(video_screen);
-        video_screen = NULL;
-        video_img = NULL;
-    }
-
-    video = 1;
-    close_timer = NULL;
-}
-const uint8_t *frame_buf;
-uint32_t frame_size;
-static uint8_t rgb_buffer[video_h * video_w * 2] __attribute__((section(".VideobufferSection")));
-lv_img_dsc_t img_dsc = {
-		.header.cf = LV_COLOR_FORMAT_RGB565,
-		.header.w = video_w,
-		.header.h = video_h,
-		.data_size = video_h * video_w * 2,
-		.data = (uint8_t *)rgb_buffer
-};
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -257,38 +214,6 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  uint32_t tick = HAL_GetTick();
-
-	  if (video == 0) {
-		  video_screen = lv_obj_create(NULL);
-		  lv_screen_load(video_screen);
-		  if (avi_init(&avi, output_mjpeg_800x480_avi, output_mjpeg_800x480_avi_len) != 0) {
-			  lv_obj_t *label = lv_label_create(video_screen);
-			  lv_label_set_text(label, "AVI Init Failed");
-			  lv_obj_center(label);
-			  HAL_UART_Transmit(&huart1, (uint8_t *)"AVI Init Failed\r\n", 16, 100);
-			  continue;
-		  }
-
-		  video_img = lv_image_create(video_screen);
-		  lv_obj_center(video_img);
-		  close_timer = lv_timer_create(hide_video_screen_cb, 10000, NULL);
-		  lv_timer_set_repeat_count(close_timer, 1);
-		  frame_idx = 0;
-		  next_frame_time = tick;
-		  video = 2;
-	  }
-	  if (video == 2) {
-		  if (tick >= next_frame_time) {
-			  if (avi_get_frame(&avi, frame_idx, &frame_buf, &frame_size) == 0 && frame_size > 0) {
-				  JPEG_DecodeToRGB565(&hjpeg, frame_buf, frame_size, rgb_buffer, video_h, video_w);
-				  lv_img_set_src(video_img, &img_dsc);
-			  }
-			  frame_idx = (frame_idx + 1) % avi.frame_count;
-			  next_frame_time += (1000 / (avi.fps));
-		  }
-	  }
-
 	  lv_timer_handler();
 	  osDelay(1);
   }

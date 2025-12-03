@@ -30,9 +30,7 @@
 #include "main_scr.h"
 #include "string.h"
 #include "stdio.h"
-#include "video_demo.h"
 #include "jpeg_utils.h"
-#include "parameter_display.h"
 #include "stm32u5xx.h"
 #include "mx66uw1g45g.h"
 #include "perf_monitor.h"
@@ -46,8 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define video_h  800
-#define video_w  480
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -80,7 +77,6 @@ UART_HandleTypeDef huart1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-
 // Timer base for 1 ms by timer 6 (default)
 volatile uint32_t ms_counter = 0;
 
@@ -181,8 +177,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   lvgl_port_init();
-
-  JPEG_InitColorTables();
+  
   perf_monitor_create();
   perf_monitor_start();
 
@@ -215,8 +210,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-
 	  lv_timer_handler();
 	  HAL_Delay(1);
   }
