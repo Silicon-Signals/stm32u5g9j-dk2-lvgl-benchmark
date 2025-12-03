@@ -64,10 +64,6 @@ static uint32_t next_frame_time = 0;
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern uint32_t _edata;
-extern uint32_t _sdata;
-extern uint32_t _ebss;
-extern uint32_t _sbss;
 extern uint32_t *buf_direct_2;
 extern uint32_t frame_buffer_size;
 extern JPEG_HandleTypeDef hjpeg;
@@ -172,7 +168,7 @@ __weak void configureTimerForRunTimeStats(void)
 
 __weak unsigned long getRunTimeCounterValue(void)
 {
-	return  HAL_GetTick();
+	return __HAL_TIM_GET_COUNTER(&htim2);
 }
 /* USER CODE END 1 */
 
@@ -367,13 +363,6 @@ void metrics_print(void)
 
         fps = frames;
         cpu = GetTaskCPUUsage(defaultTaskHandle);
-
-        // Static sections (data + bss + framebuffer)
-        uint32_t dataSize = (uint32_t)&_edata - (uint32_t)&_sdata;
-        uint32_t bssSize  = (uint32_t)&_ebss - (uint32_t)&_sbss;
-
-        // Total RAM usage (approx)
-        uint32_t totalRamUsed = (dataSize + bssSize + frame_buffer_size + heapUsed + StackUsage) / 1024;
 
         if (demo_running) {
         	if (sample_count < NUM_SAMPLES) {

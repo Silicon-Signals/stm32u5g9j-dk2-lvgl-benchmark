@@ -17,6 +17,7 @@
 #include "svg_screen.h"
 #include "text_scroll.h"
 #include "video_demo.h"
+#include "cluster_demo.h"
 /*********************
  *      DEFINES
  *********************/
@@ -36,13 +37,14 @@
 static bool menu_open = false;
 int center_x = 400;
 int center_y = 240;
-int radius = 160;
+int radius = 170;
 int angle_btn_close = 90;
-int angle_btn_alpha = 150;
-int angle_btn_svg = 330;
-int angle_btn_2d = 210;
-int angle_btn_static = 270;
-int angle_btn_text_scroll = 30;
+int angle_btn_alpha = 141;
+int angle_btn_svg = 294;
+int angle_btn_2d = 192;
+int angle_btn_static = 243;
+int angle_btn_text_scroll = 345;
+int angle_btn_cluster = 39;
 
 
 lv_obj_t *new_scr;
@@ -53,8 +55,9 @@ lv_obj_t *btn_svg;
 lv_obj_t *btn_alpha;
 lv_obj_t *btn_text_scroll;
 lv_obj_t *btn_close;
+lv_obj_t *btn_cluster;
 lv_obj_t *main_btn;
-lv_obj_t * label_center;
+lv_obj_t *label_center;
 
 /**********************
  *   GLOBAL FUNCTIONS
@@ -86,25 +89,27 @@ void menu_button_event_cb(lv_event_t * e) {
     start_button_animation(btn_text_scroll,
             center_x + radius * cos(DEG_TO_RAD(angle_btn_text_scroll)) - MENU_BTN_SIZE/2,
             center_y + radius * sin(DEG_TO_RAD(angle_btn_text_scroll)) - MENU_BTN_SIZE/2);
+    start_button_animation(btn_cluster,
+                center_x + radius * cos(DEG_TO_RAD(angle_btn_cluster)) - MENU_BTN_SIZE/2,
+                center_y + radius * sin(DEG_TO_RAD(angle_btn_cluster)) - MENU_BTN_SIZE/2);
 
     menu_open = true;  // set flag
 }
 
 void main_scr_reset_menu(void)
 {
-    /* Hide the 6 menu buttons */
-    lv_obj_add_flag(btn_static,      LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btn_2d,          LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btn_svg,         LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btn_alpha,       LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btn_close,       LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(btn_text_scroll, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_static,      LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_2d,          LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_svg,         LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_alpha,       LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_close,       LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_text_scroll, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(btn_cluster,     LV_OBJ_FLAG_HIDDEN);
 
-    /* Show the centre label again (it may have been hidden when the menu opened) */
-    lv_obj_clear_flag(label_center, LV_OBJ_FLAG_HIDDEN);
+    // Show the centre label again (it may have been hidden when the menu opened)
+    lv_obj_add_flag(label_center, LV_OBJ_FLAG_HIDDEN);
 
-    /* Make sure the menu is considered closed */
-    menu_open = false;
+    menu_open = true;
 }
 
 // Callback for when the close animation finishes
@@ -147,8 +152,9 @@ void close_button_event_cb(lv_event_t * e)
     animate_button_back(btn_alpha, center_x, center_y);
     animate_button_back(btn_close, center_x, center_y);
     animate_button_back(btn_text_scroll, center_x, center_y);
+    animate_button_back(btn_cluster, center_x, center_y);
 
-    menu_open = false; // reset flag
+    menu_open = false;
 }
 
 lv_obj_t * main_screen_start(void)
@@ -231,7 +237,7 @@ lv_obj_t * main_screen_start(void)
 
     // For btn_2d label
     lv_obj_t * label_2d = lv_label_create(btn_2d);
-    lv_label_set_text(label_2d, "2D\nTest");
+    lv_label_set_text(label_2d, "2D");
     lv_obj_set_style_text_font(label_2d, &lv_font_calibri_bold_14, 0);
     lv_obj_set_style_text_color(label_2d, lv_color_white(), 0);
     lv_obj_set_width(label_2d, MENU_BTN_SIZE);
@@ -254,7 +260,7 @@ lv_obj_t * main_screen_start(void)
 
     // For btn_svg label
     lv_obj_t * label_svg = lv_label_create(btn_svg);
-    lv_label_set_text(label_svg, "SVG\nTest");
+    lv_label_set_text(label_svg, "SVG");
     lv_obj_set_style_text_font(label_svg, &lv_font_calibri_bold_14, 0);
     lv_obj_set_style_text_color(label_svg, lv_color_white(), 0);
     lv_obj_set_width(label_svg, MENU_BTN_SIZE);
@@ -296,7 +302,7 @@ lv_obj_t * main_screen_start(void)
     lv_image_set_src(img_text_btn, &ui_button);
     lv_obj_set_align(img_text_btn, LV_ALIGN_CENTER);
 
-    // For btn_static label
+    // For btn_text_scroll
     lv_obj_t * label_text_scroll = lv_label_create(btn_text_scroll);
     lv_label_set_text(label_text_scroll, "Text\nScroll");
     lv_obj_set_style_text_font(label_text_scroll, &lv_font_calibri_bold_14, 0);
@@ -305,6 +311,28 @@ lv_obj_t * main_screen_start(void)
     lv_label_set_long_mode(label_text_scroll, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(label_text_scroll, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_align(label_text_scroll, LV_ALIGN_CENTER);
+
+    btn_cluster = lv_button_create(bg_img);
+    lv_obj_set_x(btn_cluster, center_x + radius * cos(DEG_TO_RAD(angle_btn_cluster)) - MENU_BTN_SIZE/2);
+    lv_obj_set_y(btn_cluster, center_y + radius * sin(DEG_TO_RAD(angle_btn_cluster)) - MENU_BTN_SIZE/2);
+    lv_obj_set_width(btn_cluster, MENU_BTN_SIZE);
+    lv_obj_set_height(btn_cluster, MENU_BTN_SIZE);
+    lv_obj_set_style_radius(btn_cluster, MENU_BTN_SIZE/2, 0);
+    lv_obj_set_flag(btn_cluster, LV_OBJ_FLAG_HIDDEN, false);
+
+    lv_obj_t * img_cluster_btn = lv_image_create(btn_cluster);
+    lv_image_set_src(img_cluster_btn, &ui_button);
+    lv_obj_set_align(img_cluster_btn, LV_ALIGN_CENTER);
+
+    // For btn_cluster label
+    lv_obj_t * label_cluster = lv_label_create(btn_cluster);
+    lv_label_set_text(label_cluster, "Cluster");
+    lv_obj_set_style_text_font(label_cluster, &lv_font_calibri_bold_14, 0);
+    lv_obj_set_style_text_color(label_cluster, lv_color_white(), 0);
+    lv_obj_set_width(label_cluster, MENU_BTN_SIZE);
+    lv_label_set_long_mode(label_cluster, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(label_cluster, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_align(label_cluster, LV_ALIGN_CENTER);
 
     btn_close = lv_button_create(bg_img);
     lv_obj_set_x(btn_close, center_x + radius * cos(DEG_TO_RAD(angle_btn_close)) - MENU_BTN_SIZE/2);
@@ -329,6 +357,7 @@ lv_obj_t * main_screen_start(void)
     lv_obj_add_flag(btn_svg, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btn_close, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btn_text_scroll, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(btn_cluster, LV_OBJ_FLAG_HIDDEN);
 
     lv_obj_add_event_cb(main_btn, menu_button_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_close, close_button_event_cb, LV_EVENT_CLICKED, NULL);
@@ -337,6 +366,7 @@ lv_obj_t * main_screen_start(void)
     lv_obj_add_event_cb(btn_svg, button_svg_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_text_scroll, text_scroll_button_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_alpha, video_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn_cluster, cluster_button_event_cb, LV_EVENT_CLICKED, NULL);
 
     LV_TRACE_OBJ_CREATE("finished");
 

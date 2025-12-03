@@ -80,11 +80,6 @@ UART_HandleTypeDef huart1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-//linker varibles
-extern uint32_t _edata;
-extern uint32_t _sdata;
-extern uint32_t _ebss;
-extern uint32_t _sbss;
 
 // Timer base for 1 ms by timer 6 (default)
 volatile uint32_t ms_counter = 0;
