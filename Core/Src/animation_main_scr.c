@@ -31,7 +31,7 @@ void start_button_animation(lv_obj_t *btn, int final_x, int final_y) {
     lv_anim_init(&a);
     lv_anim_set_var(&a, btn);
     lv_anim_set_exec_cb(&a, anim_x_cb);
-    lv_anim_set_time(&a, 1000);
+    lv_anim_set_time(&a, 800);
     lv_anim_set_values(&a, start_x, final_x);
     lv_anim_start(&a);
 
@@ -39,8 +39,7 @@ void start_button_animation(lv_obj_t *btn, int final_x, int final_y) {
     lv_anim_init(&a);
     lv_anim_set_var(&a, btn);
     lv_anim_set_exec_cb(&a, anim_y_cb);
-    lv_anim_set_time(&a, 1000);
+    lv_anim_set_time(&a, 800);
     lv_anim_set_values(&a, start_y, final_y);
     lv_anim_start(&a);
 }
-

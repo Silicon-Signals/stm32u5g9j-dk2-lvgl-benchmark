@@ -5,28 +5,28 @@
  *      Author: prutha
  */
 
+#include <stdio.h>
 #include "2d_screen.h"
 #include "parameter_display.h"
 #include "benchmark_results.h"
-#include <stdio.h>
 
-LV_IMAGE_DECLARE(silicon_logo);
+LV_IMAGE_DECLARE(siliconsignals_logo);
 
 lv_obj_t *screen_2d;
 lv_timer_t *close_timer;
 
-static lv_obj_t *top_logos[3];
-static lv_obj_t *bottom_logos[3];
+static lv_obj_t *Img_rotate[3];
+static lv_obj_t *Img_move[3];
 static lv_anim_t anim_rotate;
 
-static lv_timer_t *bottom_move_timer;
-static int move_phase = 0;
-static int step_count = 0;
-static bool going_out = true;
+static lv_timer_t *Img_move_timer;
+static int direction_index = 0;
+static int current_step = 0;
+static bool outward_motion = true;
 
 static void hide_2d_screen_cb(lv_timer_t *timer)
 {
-	if(bottom_move_timer) lv_timer_del(bottom_move_timer);
+	if(Img_move_timer) lv_timer_del(Img_move_timer);
     char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
 
     snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
@@ -43,14 +43,15 @@ static void hide_2d_screen_cb(lv_timer_t *timer)
         screen_2d = NULL;
     }
 
-    move_phase = 0;
-    step_count = 0;
+    direction_index = 0;
+    current_step = 0;
+    outward_motion = true;
 
     lv_timer_del(timer);
     close_timer = NULL;
 }
 
-static void rotate_exec_cb(void *obj, int32_t v)
+static void Img_rotate_cb(void *obj, int32_t v)
 {
     lv_img_set_angle((lv_obj_t *)obj, v);
 }
@@ -59,48 +60,60 @@ static void rotate_exec_cb(void *obj, int32_t v)
 static void move_bottom_logos(int dx, int dy)
 {
     for (int i = 0; i < 3; i++) {
-        lv_coord_t x = lv_obj_get_x(bottom_logos[i]);
-        lv_coord_t y = lv_obj_get_y(bottom_logos[i]);
-        lv_obj_set_pos(bottom_logos[i], x + dx, y + dy);
+        lv_coord_t x = lv_obj_get_x(Img_move[i]);
+        lv_coord_t y = lv_obj_get_y(Img_move[i]);
+        lv_obj_set_pos(Img_move[i], x + dx, y + dy);
     }
 }
 
 // Timer callback to move bottom 3 logos
-static void bottom_move_cb(lv_timer_t *timer)
+static void Img_move_cb(lv_timer_t *timer)
 {
-    const int STEP_PX = 1;
-    const int STEPS_PER_DIRECTION = 50;
+    const int MOVE_STEP_PIXELS = 1;
+    const int STEPS_PER_MOVE = 50;
 
-    int dx = 0, dy = 0;
+    int delta_x = 0;
+    int delta_y = 0;
 
-    if (going_out) {
-        // Moving away from center
-        switch (move_phase) {
-            case 0: dy =  STEP_PX; break;
-            case 1: dx =  STEP_PX; break;
-            case 2: dx = -STEP_PX; break;
-            case 3: dy = -STEP_PX; break;
+    /* ------------------------------------------------------------
+     * outward_motion: true  → moving away from origin
+     *                  false → returning back to origin
+     * direction_index: 0 = up, 1 = down, 2 = left, 3 = right
+     * ------------------------------------------------------------
+     */
+    if (outward_motion) {
+        switch (direction_index) {
+            case 0: delta_y = -MOVE_STEP_PIXELS; break;   // Move Up
+            case 1: delta_y =  MOVE_STEP_PIXELS; break;   // Move Down
+            case 2: delta_x = -MOVE_STEP_PIXELS; break;   // Move Left
+            case 3: delta_x =  MOVE_STEP_PIXELS; break;   // Move Right
         }
-    } else {
-        // Returning To center
-        switch (move_phase) {
-            case 0: dy = -STEP_PX; break;
-            case 1: dx = -STEP_PX; break;
-            case 2: dx =  STEP_PX; break;
-            case 3: dy =  STEP_PX; break;
+    }
+    else {
+        switch (direction_index) {
+            case 0: delta_y =  MOVE_STEP_PIXELS; break;   // Return Down
+            case 1: delta_y = -MOVE_STEP_PIXELS; break;   // Return Up
+            case 2: delta_x =  MOVE_STEP_PIXELS; break;   // Return Right
+            case 3: delta_x = -MOVE_STEP_PIXELS; break;   // Return Left
         }
     }
 
-    move_bottom_logos(dx, dy);
+    // Apply movement
+    move_bottom_logos(delta_x, delta_y);
 
-    step_count++;
+    // Step counter
+    current_step++;
 
-    if (step_count >= STEPS_PER_DIRECTION) {
-        step_count = 0;
-        if (!going_out) {
-            move_phase = (move_phase + 1) % 4;
+    if (current_step >= STEPS_PER_MOVE) {
+        current_step = 0;
+
+        // When returning phase finishes → change direction
+        if (!outward_motion) {
+            direction_index = (direction_index + 1) % 4;
         }
-        going_out = !going_out;
+
+        // Toggle outward <-> return
+        outward_motion = !outward_motion;
     }
 }
 
@@ -124,39 +137,39 @@ void button_2d_event_cb(lv_event_t *e)
     const int right_x = 601;
 
     // Create top 3 rotating logos
-    top_logos[0] = lv_img_create(screen_2d);
-    lv_img_set_src(top_logos[0], &silicon_logo);
-    lv_obj_set_pos(top_logos[0], left_x, top_y);
-    lv_img_set_pivot(top_logos[0], logo_w / 2, logo_h / 2);
+    Img_rotate[0] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_rotate[0], &siliconsignals_logo);
+    lv_obj_set_pos(Img_rotate[0], left_x, top_y);
+    lv_img_set_pivot(Img_rotate[0], logo_w / 2, logo_h / 2);
 
-    top_logos[1] = lv_img_create(screen_2d);
-    lv_img_set_src(top_logos[1], &silicon_logo);
-    lv_obj_set_pos(top_logos[1], center_x, top_y);
-    lv_img_set_pivot(top_logos[1], logo_w / 2, logo_h / 2);
+    Img_rotate[1] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_rotate[1], &siliconsignals_logo);
+    lv_obj_set_pos(Img_rotate[1], center_x, top_y);
+    lv_img_set_pivot(Img_rotate[1], logo_w / 2, logo_h / 2);
 
-    top_logos[2] = lv_img_create(screen_2d);
-    lv_img_set_src(top_logos[2], &silicon_logo);
-    lv_obj_set_pos(top_logos[2], right_x, top_y);
-    lv_img_set_pivot(top_logos[2], logo_w / 2, logo_h / 2);
+    Img_rotate[2] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_rotate[2], &siliconsignals_logo);
+    lv_obj_set_pos(Img_rotate[2], right_x, top_y);
+    lv_img_set_pivot(Img_rotate[2], logo_w / 2, logo_h / 2);
 
     // Create bottom 3 logos (moving ones)
-    bottom_logos[0] = lv_img_create(screen_2d);
-    lv_img_set_src(bottom_logos[0], &silicon_logo);
-    lv_obj_set_pos(bottom_logos[0], left_x, bottom_y);
+    Img_move[0] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_move[0], &siliconsignals_logo);
+    lv_obj_set_pos(Img_move[0], left_x, bottom_y);
 
-    bottom_logos[1] = lv_img_create(screen_2d);
-    lv_img_set_src(bottom_logos[1], &silicon_logo);
-    lv_obj_set_pos(bottom_logos[1], center_x, bottom_y);
+    Img_move[1] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_move[1], &siliconsignals_logo);
+    lv_obj_set_pos(Img_move[1], center_x, bottom_y);
 
-    bottom_logos[2] = lv_img_create(screen_2d);
-    lv_img_set_src(bottom_logos[2], &silicon_logo);
-    lv_obj_set_pos(bottom_logos[2], right_x, bottom_y);
+    Img_move[2] = lv_img_create(screen_2d);
+    lv_img_set_src(Img_move[2], &siliconsignals_logo);
+    lv_obj_set_pos(Img_move[2], right_x, bottom_y);
 
     // Animate top 3 logos (rotate clockwise)
     for (int i = 0; i < 3; i++) {
         lv_anim_init(&anim_rotate);
-        lv_anim_set_var(&anim_rotate, top_logos[i]);
-        lv_anim_set_exec_cb(&anim_rotate, rotate_exec_cb);
+        lv_anim_set_var(&anim_rotate, Img_rotate[i]);
+        lv_anim_set_exec_cb(&anim_rotate, Img_rotate_cb);
         lv_anim_set_values(&anim_rotate, 0, 3600);
         lv_anim_set_time(&anim_rotate, 5000);
         lv_anim_set_repeat_count(&anim_rotate, LV_ANIM_REPEAT_INFINITE);
@@ -164,7 +177,7 @@ void button_2d_event_cb(lv_event_t *e)
     }
 
     // Create timer for bottom 3 logos movement
-    bottom_move_timer = lv_timer_create(bottom_move_cb, 20, NULL);
-    lv_timer_set_repeat_count(bottom_move_timer, LV_ANIM_REPEAT_INFINITE);
+    Img_move_timer = lv_timer_create(Img_move_cb, 17, NULL);
+    lv_timer_set_repeat_count(Img_move_timer, LV_ANIM_REPEAT_INFINITE);
     close_timer = lv_timer_create(hide_2d_screen_cb, 10000, NULL);
 }

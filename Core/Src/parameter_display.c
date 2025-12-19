@@ -120,14 +120,16 @@ static void create_static_param_screen(lv_obj_t * screen, char *test_label, char
 
     // Create home button
     lv_obj_t *home_btn = lv_btn_create(screen);
-    lv_obj_set_size(home_btn, 60, 64); // Width: 60px, Height: 64px
+    lv_obj_remove_style_all(home_btn);
+
+    lv_obj_set_size(home_btn, 65, 65);
     lv_obj_set_pos(home_btn, 369, 378);
     lv_obj_set_style_radius(home_btn, LV_RADIUS_CIRCLE, 0);
 
-    // Add image to home button
+    // Add the image
     lv_obj_t *home_img = lv_img_create(home_btn);
-    lv_img_set_src(home_img, &home_icon); // Set the image source
-    lv_obj_center(home_img); // Center the image within the button
+    lv_img_set_src(home_img, &home_icon);
+    lv_obj_align(home_img, LV_ALIGN_CENTER, 0, 0);
 
     // Add event callback for home button
     lv_obj_add_event_cb(home_btn, static_param_home_cb, LV_EVENT_CLICKED, NULL);

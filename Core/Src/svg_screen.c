@@ -10,14 +10,14 @@
 #include "benchmark_results.h"
 #include "svg_strings.h"
 
-extern const lv_image_dsc_t Car_Body;
-extern const lv_image_dsc_t Ellipse;
+extern const lv_image_dsc_t car_body;
+extern const lv_image_dsc_t ellipse;
 
-extern const lv_image_dsc_t Tire1;
-extern const lv_image_dsc_t Tire2;
-extern const lv_image_dsc_t Tire3;
-extern const lv_image_dsc_t Tire4;
-extern const lv_image_dsc_t Tire5;
+extern const lv_image_dsc_t tire1;
+extern const lv_image_dsc_t tire2;
+extern const lv_image_dsc_t tire3;
+extern const lv_image_dsc_t tire4;
+extern const lv_image_dsc_t tire5;
 
 extern const lv_image_dsc_t tire_pair1;
 extern const lv_image_dsc_t tire_pair2;
@@ -82,13 +82,13 @@ void create_svg_scr(void) {
     tire_h = 65;
 
     // Create ellipse image
-    lv_obj_t *ellipse = lv_img_create(screen_svg);
-    lv_img_set_src(ellipse, &Ellipse);
-    lv_obj_align(ellipse, LV_ALIGN_TOP_MID, 0, -50);
+    lv_obj_t *ellipse_data = lv_img_create(screen_svg);
+    lv_img_set_src(ellipse_data, &ellipse);
+    lv_obj_align(ellipse_data, LV_ALIGN_TOP_MID, 0, -50);
 
     // Create Car image at bottom center
     lv_obj_t *car_image = lv_img_create(screen_svg);
-    lv_img_set_src(car_image, &Car_Body);
+    lv_img_set_src(car_image, &car_body);
     lv_obj_set_pos(car_image, 183, 271);
 
     car_tire_image = lv_img_create(screen_svg);
@@ -96,7 +96,7 @@ void create_svg_scr(void) {
     lv_obj_set_pos(car_tire_image, 219, 314);
 
     // Tire image descriptors
-    static const lv_img_dsc_t *srcs[5] = {&Tire4, &Tire5, &Tire1, &Tire2, &Tire3};
+    static const lv_img_dsc_t *srcs[5] = {&tire4, &tire5, &tire1, &tire2, &tire3};
 
     // Create tire images and set initial positions
     for (int i = 0; i < 5; i++) {

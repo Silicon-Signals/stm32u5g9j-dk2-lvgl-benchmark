@@ -10,11 +10,11 @@
 #include "benchmark_results.h"
 
 // Shapes and timers
-static lv_obj_t *circle_obj;
-static lv_obj_t *square_obj;
-static lv_obj_t *rect_obj;
-static lv_obj_t *alpha_circle_obj;
-static lv_obj_t *alpha_square_obj;
+static lv_obj_t *circle;
+static lv_obj_t *square;
+static lv_obj_t *rectangle;
+static lv_obj_t *alpha_circle;
+static lv_obj_t *alpha_square;
 static lv_obj_t *new_screen;
 
 static lv_timer_t *color_timer;
@@ -27,9 +27,9 @@ static lv_obj_t *new_screen;
 extern lv_obj_t *main_screen;
 
 // Predefined colors
-static lv_color_t colors_sq[3] = { LV_COLOR_MAKE(255,0,0), LV_COLOR_MAKE(0,255,0), LV_COLOR_MAKE(0,0,255) };
-static lv_color_t colors_ci[3] = { LV_COLOR_MAKE(0,255,0), LV_COLOR_MAKE(0,0,255), LV_COLOR_MAKE(255,0,0) };
-static lv_color_t colors_re[3] = { LV_COLOR_MAKE(0,0,255), LV_COLOR_MAKE(255,0,0), LV_COLOR_MAKE(0,255,0) };
+static lv_color_t square_color[3] = { LV_COLOR_MAKE(255,0,0), LV_COLOR_MAKE(0,255,0), LV_COLOR_MAKE(0,0,255) };
+static lv_color_t circle_color[3] = { LV_COLOR_MAKE(0,255,0), LV_COLOR_MAKE(0,0,255), LV_COLOR_MAKE(255,0,0) };
+static lv_color_t rectangle_color[3] = { LV_COLOR_MAKE(0,0,255), LV_COLOR_MAKE(255,0,0), LV_COLOR_MAKE(0,255,0) };
 
 // Color Timer
 // Separate indices for each shape
@@ -40,17 +40,17 @@ static int rectangle_color_index = 0;
 // Timer callback every 200ms
 static void color_timer_cb(lv_timer_t * timer) {
     // Update square color
-    lv_obj_set_style_bg_color(square_obj, colors_sq[square_color_index], 0);
-    lv_obj_set_style_bg_color(alpha_square_obj, colors_sq[square_color_index], 0);
+    lv_obj_set_style_bg_color(square, square_color[square_color_index], 0);
+    lv_obj_set_style_bg_color(alpha_square, square_color[square_color_index], 0);
     square_color_index = (square_color_index + 1) % 3;
 
     // Update circle color
-    lv_obj_set_style_bg_color(circle_obj, colors_ci[circle_color_index], 0);
-    lv_obj_set_style_bg_color(alpha_circle_obj, colors_ci[circle_color_index], 0);
+    lv_obj_set_style_bg_color(circle, circle_color[circle_color_index], 0);
+    lv_obj_set_style_bg_color(alpha_circle, circle_color[circle_color_index], 0);
     circle_color_index = (circle_color_index + 1) % 3;
 
     // Update rectangle color
-    lv_obj_set_style_bg_color(rect_obj, colors_re[rectangle_color_index], 0);
+    lv_obj_set_style_bg_color(rectangle, rectangle_color[rectangle_color_index], 0);
     rectangle_color_index = (rectangle_color_index + 1) % 3;
 }
 
@@ -86,39 +86,39 @@ void static_button_event_cb(lv_event_t * e) {
     new_screen = lv_obj_create(NULL);
 
     // Square
-    square_obj = lv_obj_create(new_screen);
-    lv_obj_set_size(square_obj, 150, 150); // width = L, height = h.
-    lv_obj_set_style_radius(square_obj, 0, 0);
-    lv_obj_set_pos(square_obj, 141, 52);
+    square = lv_obj_create(new_screen);
+    lv_obj_set_size(square, 150, 150); // width = L, height = h.
+    lv_obj_set_style_radius(square, 0, 0);
+    lv_obj_set_pos(square, 141, 52);
 
     // Circle
-    circle_obj = lv_obj_create(new_screen);
-    lv_obj_set_size(circle_obj, 150, 150); // radius = 75, width = 75 * 2, height = 75 * 2.
-    lv_obj_set_style_radius(circle_obj, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_pos(circle_obj, 141, 277);
+    circle = lv_obj_create(new_screen);
+    lv_obj_set_size(circle, 150, 150); // radius = 75, width = 75 * 2, height = 75 * 2.
+    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_pos(circle, 141, 277);
 
     // Rectangle
-    rect_obj = lv_obj_create(new_screen);
-    lv_obj_set_size(rect_obj, 200, 100); // width = L, height = h.
-    lv_obj_set_style_radius(rect_obj, 0, 0);
-    lv_obj_set_pos(rect_obj, 466, 77);
-    lv_obj_set_style_radius(rect_obj, 20, 0);
+    rectangle = lv_obj_create(new_screen);
+    lv_obj_set_size(rectangle, 200, 100); // width = L, height = h.
+    lv_obj_set_style_radius(rectangle, 0, 0);
+    lv_obj_set_pos(rectangle, 466, 77);
+    lv_obj_set_style_radius(rectangle, 20, 0);
 
     // Alpha Square
-    alpha_square_obj = lv_obj_create(new_screen);
-    lv_obj_set_size(alpha_square_obj, 150, 150); // width = L, height = h.
-    lv_obj_set_pos(alpha_square_obj, 482, 292);
-    lv_obj_set_style_radius(alpha_square_obj, 0, 0);
-    lv_obj_set_style_bg_opa(alpha_square_obj, 127, 0);
-    lv_obj_set_style_border_width(alpha_square_obj, 0, 0);
+    alpha_square = lv_obj_create(new_screen);
+    lv_obj_set_size(alpha_square, 150, 150); // width = L, height = h.
+    lv_obj_set_pos(alpha_square, 482, 292);
+    lv_obj_set_style_radius(alpha_square, 0, 0);
+    lv_obj_set_style_bg_opa(alpha_square, 127, 0);
+    lv_obj_set_style_border_width(alpha_square, 0, 0);
 
     // Alpha Circle
-    alpha_circle_obj = lv_obj_create(new_screen);
-    lv_obj_set_size(alpha_circle_obj, 150, 150); // radius = 75, width = 75 * 2, height = 75 * 2.
-    lv_obj_set_style_radius(alpha_circle_obj, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_pos(alpha_circle_obj, 557, 217);
-    lv_obj_set_style_bg_opa(alpha_circle_obj, 127, 0);
-    lv_obj_set_style_border_width(alpha_circle_obj, 0, 0);
+    alpha_circle = lv_obj_create(new_screen);
+    lv_obj_set_size(alpha_circle, 150, 150); // radius = 75, width = 75 * 2, height = 75 * 2.
+    lv_obj_set_style_radius(alpha_circle, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_pos(alpha_circle, 557, 217);
+    lv_obj_set_style_bg_opa(alpha_circle, 127, 0);
+    lv_obj_set_style_border_width(alpha_circle, 0, 0);
 
     // Load Screen
     lv_scr_load(new_screen);

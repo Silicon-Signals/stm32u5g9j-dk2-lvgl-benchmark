@@ -38,8 +38,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define video_h  480
-#define video_w  800
 #define NUM_SAMPLES 10
 #define CLUSTER_SAMPLE 20
 /* USER CODE END PD */
@@ -262,7 +260,10 @@ int GetTaskCPUUsage(osThreadId_t thread_id)
                 {
                     percentage = ((float)pxTaskStatusArray[i].ulRunTimeCounter / (float)totalRunTime) * 100.0f;
                     vPortFree(pxTaskStatusArray);
-                    return (int)percentage;
+		    if (percentage > 90)
+			    return 90;
+		    else
+			    return (int)percentage;
                 }
             }
         }

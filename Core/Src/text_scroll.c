@@ -12,14 +12,22 @@
 static lv_obj_t *scroll_obj = NULL;
 static lv_obj_t *text_container = NULL;
 
-#define SCROLL_TIME 10000  // total time for one full scroll cycle
+#define SCROLL_TIME_UP   4500  // 4.5s scroll up
+#define SCROLL_TIME_DOWN 4500  // 4.5s scroll down
+#define PAUSE_TIME       500   // 500ms pause
 
 static lv_anim_t scroll_anim;
-static lv_timer_t *text_timer;
+static lv_timer_t *text_timer = NULL;
+static lv_timer_t *pause_timer = NULL;
+
+static bool scroll_upward = true;
 
 // Return to home screen after 10s
 static void auto_return_cb(lv_timer_t * timer)
 {
+    lv_timer_del(pause_timer);
+    pause_timer = NULL;
+
     char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
 
     snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
@@ -39,37 +47,82 @@ static void auto_return_cb(lv_timer_t * timer)
     text_timer = NULL;
 }
 
-// Animation execution callback
+// Animation execution callback (sets Y position of text_container)
 static void scroll_exec_cb(void * obj, int32_t v)
 {
     lv_obj_set_y(obj, -v);
 }
 
-// Animation ready callback — jump back to top and restart instantly
-static void scroll_ready_cb(lv_anim_t * a)
+// Pause timer callback: starts the next scroll in opposite direction
+static void pause_timer_cb(lv_timer_t * timer)
 {
-    lv_obj_t * obj = a->var;
-
-    // Instantly reset scroll to top without animation
-    lv_obj_scroll_to_y(obj, 0, LV_ANIM_ON);
-
-    // Restart animation immediately (no pause)
-    lv_anim_start(&scroll_anim);
-}
-
-// Start continuous smooth scroll animation
-static void start_scroll_animation(void)
-{
-    if (!scroll_obj) return;
+    if (!text_container) {
+        lv_timer_del(timer);
+        return;
+    }
 
     lv_obj_update_layout(text_container);
+    lv_coord_t content_height = lv_obj_get_height(text_container);
+    lv_coord_t visible_height = 480;
+    lv_coord_t scroll_range = content_height - visible_height;
+
+    if (scroll_range <= 0) {
+        lv_timer_del(timer);
+        return; // Nothing to scroll
+    }
+
+    scroll_upward = !scroll_upward;  // Toggle direction
+
+    if (scroll_upward) {
+        // Next: Scroll UP (visually top → bottom)
+        // Start from TOP position (beginning of text visible)
+        lv_obj_set_y(text_container, 0);
+        lv_anim_set_values(&scroll_anim, 0, scroll_range);        // Move content up
+        lv_anim_set_time(&scroll_anim, SCROLL_TIME_UP);
+    } else {
+        // Next: Scroll DOWN (visually bottom → top)
+        // Start from BOTTOM position (end of text visible)
+        lv_obj_set_y(text_container, -scroll_range);
+        lv_anim_set_values(&scroll_anim, scroll_range, 0);        // Move content down (back to top)
+        lv_anim_set_time(&scroll_anim, SCROLL_TIME_DOWN);
+    }
+
+    lv_anim_start(&scroll_anim);
+
+    lv_timer_del(timer);
+    pause_timer = NULL;
+}
+
+// Animation ready callback: trigger pause at end
+static void scroll_ready_cb(lv_anim_t * a)
+{
+    // Start pause before reversing direction
+    pause_timer = lv_timer_create(pause_timer_cb, PAUSE_TIME, NULL);
+}
+
+// Start the scrolling sequence
+static void start_scroll_animation(void)
+{
+    if (!scroll_obj || !text_container) return;
+
+    lv_obj_update_layout(text_container);
+    lv_coord_t content_height = lv_obj_get_height(text_container);
+    lv_coord_t visible_height = 480;
+    lv_coord_t scroll_range = content_height - visible_height;
+
+    if (scroll_range <= 0) return;
+
     lv_anim_init(&scroll_anim);
     lv_anim_set_var(&scroll_anim, text_container);
     lv_anim_set_exec_cb(&scroll_anim, scroll_exec_cb);
-    lv_anim_set_values(&scroll_anim, 0, lv_obj_get_height(text_container) - 480);
-    lv_anim_set_time(&scroll_anim, SCROLL_TIME);
     lv_anim_set_path_cb(&scroll_anim, lv_anim_path_linear);
     lv_anim_set_ready_cb(&scroll_anim, scroll_ready_cb);
+
+    scroll_upward = true;
+    lv_obj_set_y(text_container, 0);
+    lv_anim_set_values(&scroll_anim, 0, scroll_range);
+    lv_anim_set_time(&scroll_anim, SCROLL_TIME_UP);
+
     lv_anim_start(&scroll_anim);
 }
 
@@ -105,8 +158,8 @@ void text_scroll(void)
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
 
     // --- Body text ---
-    lv_obj_t *body = lv_label_create(text_container);
-    lv_label_set_text(body,
+    lv_obj_t *text = lv_label_create(text_container);
+    lv_label_set_text(text,
         "\n"
         "          The STM32U5G9J-DK2 Discovery kit is a complete demonstration and "
         "development platform for the STM32U5G9ZJT6Q microcontroller, featuring "
@@ -157,12 +210,12 @@ void text_scroll(void)
         "documentation can be downloaded from www.st.com.\n\n"
     );
 
-    lv_obj_set_style_text_font(body, &lv_font_calibri_regular_25, 0);
-    lv_obj_set_style_text_color(body, lv_color_hex(0x000000), 0);
-    lv_obj_set_width(body, 800);
-    lv_label_set_long_mode(body, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_text_align(body, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_align_to(body, title, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
+    lv_obj_set_style_text_font(text, &lv_font_calibri_regular_25, 0);
+    lv_obj_set_style_text_color(text, lv_color_hex(0x000000), 0);
+    lv_obj_set_width(text, 800);
+    lv_label_set_long_mode(text, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(text, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_align_to(text, title, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
     text_timer = lv_timer_create(auto_return_cb, 10000, NULL);  // 10s
 
     // Start smooth scroll animation

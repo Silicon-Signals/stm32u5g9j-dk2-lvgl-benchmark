@@ -5,10 +5,10 @@
  *      Author: prutha
  */
 
+#include <stdio.h>
 #include "cluster_demo.h"
 #include "parameter_display.h"
 #include "benchmark_results.h"
-#include <stdio.h>
 #include "stm32u5xx.h"
 
 // Frames
@@ -54,14 +54,14 @@ static lv_obj_t *fuel_icon;
 static lv_obj_t *notif_box;
 static lv_obj_t *notif_box_fuel;
 
-static lv_obj_t *label_kmh_text;
-static lv_obj_t *label_kmh_value;
-static lv_obj_t *label_rpm_text;
-static lv_obj_t *label_rpm_value;
-static lv_obj_t *label_gear_text;
-static lv_obj_t *label_gear_value;
-static lv_obj_t *label_total_text;
-static lv_obj_t *label_total_value;
+static lv_obj_t *kmh;
+static lv_obj_t *kmhValue;
+static lv_obj_t *rpm;
+static lv_obj_t *rpmValue;
+static lv_obj_t *gear;
+static lv_obj_t *gearValue;
+static lv_obj_t *total;
+static lv_obj_t *totalValue;
 
 static lv_timer_t *anim_timer;
 static uint32_t demo_start_ms = 0;
@@ -80,7 +80,7 @@ typedef enum {
 } Phase;
 
 static Phase phase = Forward1;
-static int leftAnimFrame = 0;
+static int animation_frame = 0;
 
 
 static void cleanup_and_exit(void)
@@ -109,7 +109,7 @@ static void cleanup_and_exit(void)
     indicatorTimer = 0;
     fuel_index = 0;
     fuelTimer = 0;
-    leftAnimFrame = 0;
+    animation_frame = 0;
     phase = Forward1;
 }
 
@@ -121,56 +121,56 @@ static inline void set_icon(lv_obj_t *obj, const lv_image_dsc_t *normal, const l
 static void cluster_anim_cb(lv_timer_t *t)
 {
     uint32_t now = HAL_GetTick();
-    uint32_t elapsed_ms = now - demo_start_ms;
+    uint32_t seconds = now - demo_start_ms;
 
     static uint32_t last_frame_update = 0;
     if (now - last_frame_update >= 100) {
         last_frame_update = now;
 
         switch (phase) {
-            case Forward1:  if (++leftAnimFrame >= 39) phase = Reverse1;  break;
-            case Reverse1:  if (--leftAnimFrame <= 13) phase = Forward2; break;
-            case Forward2:  if (++leftAnimFrame >= 30) phase = Reverse2; break;
-            case Reverse2:  if (--leftAnimFrame <= 3)  phase = Forward3; break;
-            case Forward3:  if (++leftAnimFrame >= 21) phase = Forward1; break;
+            case Forward1:  if (++animation_frame >= 39) phase = Reverse1;  break;
+            case Reverse1:  if (--animation_frame <= 13) phase = Forward2; break;
+            case Forward2:  if (++animation_frame >= 30) phase = Reverse2; break;
+            case Reverse2:  if (--animation_frame <= 3)  phase = Forward3; break;
+            case Forward3:  if (++animation_frame >= 21) phase = Forward1; break;
         }
-        lv_image_set_src(left_img, left_frames[leftAnimFrame]);
+        lv_image_set_src(left_img, left_frames[animation_frame]);
     }
 
     // INDICATOR TIMELINE
     bool left_on  = true;
     bool right_on = false;
-    uint32_t cycle = elapsed_ms % 6000;
+    uint32_t cycle = seconds % 6000;
     if (cycle >= 2000 && cycle < 4000) left_on = false;
     if (cycle >= 2000 && cycle < 4000) right_on = true;
     if (cycle >= 4000 && cycle < 6000) { left_on = true; right_on = true; }
 
     // Dipper Blink at 8s and 15s
     bool dipper_on = false;
-    if ((elapsed_ms >= 8000 && elapsed_ms < 10000) || (elapsed_ms >= 15000 && elapsed_ms < 17000)) {
-        dipper_on = ((elapsed_ms / 500) % 2) == 0;
+    if ((seconds >= 8000 && seconds < 10000) || (seconds >= 15000 && seconds < 17000)) {
+        dipper_on = ((seconds / 500) % 2) == 0;
     }
 
     // Battery Arc
-    if (elapsed_ms < 5000) {
+    if (seconds < 5000) {
     	lv_image_set_src(battery_arc, &battery_full);
-    } else if (elapsed_ms < 9000) {
+    } else if (seconds < 9000) {
     	lv_image_set_src(battery_arc, &battery_50);
     } else {
     	lv_image_set_src(battery_arc, &battery_low);
     }
 
     // Notifications
-    if (elapsed_ms >= 9000) {
+    if (seconds >= 9000) {
     	lv_obj_clear_flag(notif_box, LV_OBJ_FLAG_HIDDEN);
     }
-    if (elapsed_ms >= 10000)
+    if (seconds >= 10000)
     	lv_obj_add_flag(notif_box, LV_OBJ_FLAG_HIDDEN);
 
-    bool service_on = (elapsed_ms >= 10000);
-    bool engine_on  = (elapsed_ms >= 15000);
-    bool fuel_on    = (elapsed_ms >= 10000);
-    bool battery_on = (elapsed_ms >= 9000);
+    bool service_on = (seconds >= 10000);
+    bool engine_on  = (seconds >= 15000);
+    bool fuel_on    = (seconds >= 10000);
+    bool battery_on = (seconds >= 9000);
 
     set_icon(left_ind,     &left_indicator,     &left_indicator_colored,  left_on);
     set_icon(right_ind,    &right_indicator,    &right_indicator_colored, right_on);
@@ -181,47 +181,47 @@ static void cluster_anim_cb(lv_timer_t *t)
     set_icon(fuel_icon,    &fuel,               &Fuel_icon,               fuel_on);
 
     // Speed & Gear
-    int gearValue = 0;
-    int kmhValue = 0;
-    if (leftAnimFrame <= 4) {
-    	gearValue = 1;
-    	kmhValue = 3  + leftAnimFrame * 8;
-    } else if (leftAnimFrame <= 10) {
-    	gearValue = 2;
-    	kmhValue = 10 + (leftAnimFrame-4)*15;
-    } else if (leftAnimFrame <= 20) {
-    	gearValue = 3;
-    	kmhValue = 30 + (leftAnimFrame-10)*20/10;
-    } else if (leftAnimFrame <= 30) {
-    	gearValue = 4;
-    	kmhValue = 50 + (leftAnimFrame-20)*30/10;
-    } else {
-    	gearValue = 5;
-    	kmhValue = 80 + (leftAnimFrame-30)*40/9;
+    int gear_value = 0;
+    int KMH_value = 0;
+    if (animation_frame > 0 && animation_frame <= 4) {
+    	gear_value = 1;
+    	KMH_value = 3 + ((animation_frame - 1) * 7 / 3);
+    } else if (animation_frame > 4 && animation_frame <= 10) {
+    	gear_value = 2;
+    	KMH_value = 10 + ((animation_frame - 4) * 20 / 6);
+    } else if (animation_frame > 10 && animation_frame <= 20) {
+    	gear_value = 3;
+    	KMH_value = 30 + ((animation_frame - 10) * 20 / 10);
+    } else if (animation_frame > 20 && animation_frame <= 30) {
+    	gear_value = 4;
+    	KMH_value = 50 + ((animation_frame - 20) * 30 / 10);
+    } else if (animation_frame > 30 && animation_frame <= 39) {
+    	gear_value = 5;
+    	KMH_value = 80 + ((animation_frame - 30) * 40 / 9);
     }
 
     // RPM Needle
-    int rpmPercent = (kmhValue * 100) / 120;
-    if (rpmPercent > 100) rpmPercent = 100;
-    lv_image_set_src(right_img, right_frames[(rpmPercent * 39) / 100]);
+    int RMP_percent = (KMH_value * 100) / 120;
+    if (RMP_percent > 100) RMP_percent = 100;
+    lv_image_set_src(right_img, right_frames[(RMP_percent * 39) / 100]);
 
-    if (elapsed_ms >= 13000 && elapsed_ms < 16000) {
+    if (seconds >= 13000 && seconds < 16000) {
         lv_image_set_src(fuel_img, &Fuel_80);
     }
-    else if (elapsed_ms >= 16000 && elapsed_ms < 19000) {
+    else if (seconds >= 16000 && seconds < 19000) {
         lv_image_set_src(fuel_img, &Fuel_50);
     }
-    else if (elapsed_ms >= 19000) {
+    else if (seconds >= 19000) {
         lv_image_set_src(fuel_img, &Low_fuel);
         lv_obj_clear_flag(notif_box_fuel, LV_OBJ_FLAG_HIDDEN);
     }
 
-    lv_label_set_text_fmt(label_total_value, " %ld KM", (elapsed_ms * 200) / 20000);
-    lv_label_set_text_fmt(label_kmh_value, "%d", kmhValue);
-    lv_label_set_text_fmt(label_rpm_value, "%d", rpmPercent);
-    lv_label_set_text_fmt(label_gear_value, "%d", gearValue);
+    lv_label_set_text_fmt(totalValue, " %ld KM", (seconds * 201) / 20000);
+    lv_label_set_text_fmt(kmhValue, "%d", KMH_value);
+    lv_label_set_text_fmt(rpmValue, "%d", RMP_percent);
+    lv_label_set_text_fmt(gearValue, "%d", gear_value);
 
-    if (elapsed_ms >= 20000) {
+    if (seconds >= 20000) {
         cleanup_and_exit();
         return;
     }
@@ -335,53 +335,53 @@ void cluster_demo_start(void)
     lv_obj_align(notif_label_fuel, LV_ALIGN_LEFT_MID, 15, 0);
 
     // Text Labels
-    label_kmh_text  = lv_label_create(scr);
-    lv_label_set_text(label_kmh_text, "KM/H");
-    lv_obj_set_pos(label_kmh_text, 181, 248);
-    lv_obj_set_style_text_color(label_kmh_text, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_kmh_text, &lv_font_digital_italic_30, 0);
+    kmh = lv_label_create(scr);
+    lv_label_set_text(kmh, "KM/H");
+    lv_obj_set_pos(kmh, 181, 248);
+    lv_obj_set_style_text_color(kmh, lv_color_white(), 0);
+    lv_obj_set_style_text_font(kmh, &lv_font_digital_italic_30, 0);
 
-    label_kmh_value = lv_label_create(scr);
-    lv_label_set_text(label_kmh_value, "0");
-    lv_obj_set_pos(label_kmh_value, 188, 194);
-    lv_obj_set_style_text_color(label_kmh_value, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_kmh_value, &lv_font_digital_italic_55, 0);
+    kmhValue = lv_label_create(scr);
+    lv_label_set_text(kmhValue, "0");
+    lv_obj_set_pos(kmhValue, 188, 194);
+    lv_obj_set_style_text_color(kmhValue, lv_color_white(), 0);
+    lv_obj_set_style_text_font(kmhValue, &lv_font_digital_italic_55, 0);
 
-    label_rpm_text  = lv_label_create(scr);
-    lv_label_set_text(label_rpm_text, "%RPM");
-    lv_obj_set_pos(label_rpm_text, 564, 248);
-    lv_obj_set_style_text_color(label_rpm_text, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_rpm_text, &lv_font_digital_italic_30, 0);
+    rpm = lv_label_create(scr);
+    lv_label_set_text(rpm, "%RPM");
+    lv_obj_set_pos(rpm, 564, 248);
+    lv_obj_set_style_text_color(rpm, lv_color_white(), 0);
+    lv_obj_set_style_text_font(rpm, &lv_font_digital_italic_30, 0);
 
-    label_rpm_value = lv_label_create(scr);
-    lv_label_set_text(label_rpm_value, "0");
-    lv_obj_set_pos(label_rpm_value, 575, 194);
-    lv_obj_set_style_text_color(label_rpm_value, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_rpm_value, &lv_font_digital_italic_55, 0);
+    rpmValue = lv_label_create(scr);
+    lv_label_set_text(rpmValue, "0");
+    lv_obj_set_pos(rpmValue, 575, 194);
+    lv_obj_set_style_text_color(rpmValue, lv_color_white(), 0);
+    lv_obj_set_style_text_font(rpmValue, &lv_font_digital_italic_55, 0);
 
-    label_gear_text  = lv_label_create(scr);
-    lv_label_set_text(label_gear_text, "GEAR");
-    lv_obj_set_pos(label_gear_text, 375, 172);
-    lv_obj_set_style_text_color(label_gear_text, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_gear_text, &lv_font_digital_italic_30, 0);
+    gear = lv_label_create(scr);
+    lv_label_set_text(gear, "GEAR");
+    lv_obj_set_pos(gear, 375, 172);
+    lv_obj_set_style_text_color(gear, lv_color_white(), 0);
+    lv_obj_set_style_text_font(gear, &lv_font_digital_italic_30, 0);
 
-    label_gear_value = lv_label_create(scr);
-    lv_label_set_text(label_gear_value, "0");
-    lv_obj_set_pos(label_gear_value, 388, 116);
-    lv_obj_set_style_text_color(label_gear_value, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_gear_value, &lv_font_digital_italic_55, 0);
+    gearValue = lv_label_create(scr);
+    lv_label_set_text(gearValue, "0");
+    lv_obj_set_pos(gearValue, 388, 116);
+    lv_obj_set_style_text_color(gearValue, lv_color_white(), 0);
+    lv_obj_set_style_text_font(gearValue, &lv_font_digital_italic_55, 0);
 
-    label_total_text  = lv_label_create(scr);
-    lv_label_set_text(label_total_text, "TOTAL :");
-    lv_obj_set_pos(label_total_text, 326, 425);
-    lv_obj_set_style_text_color(label_total_text, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_total_text, &lv_font_digital_italic_30, 0);
+    total = lv_label_create(scr);
+    lv_label_set_text(total, "TOTAL :");
+    lv_obj_set_pos(total, 326, 425);
+    lv_obj_set_style_text_color(total, lv_color_white(), 0);
+    lv_obj_set_style_text_font(total, &lv_font_digital_italic_30, 0);
 
-    label_total_value = lv_label_create(scr);
-    lv_label_set_text(label_total_value, " 0 KM");
-    lv_obj_set_pos(label_total_value, 411, 425);
-    lv_obj_set_style_text_color(label_total_value, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_total_value, &lv_font_digital_italic_30, 0);
+    totalValue = lv_label_create(scr);
+    lv_label_set_text(totalValue, " 0 KM");
+    lv_obj_set_pos(totalValue, 411, 425);
+    lv_obj_set_style_text_color(totalValue, lv_color_white(), 0);
+    lv_obj_set_style_text_font(totalValue, &lv_font_digital_italic_30, 0);
 
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -390,10 +390,10 @@ void cluster_demo_start(void)
     // Reset state
     fuel_index = 0;
     fuelTimer = 0;
-    leftAnimFrame = 0;
+    animation_frame = 0;
     phase = Forward1;
 
-    anim_timer = lv_timer_create(cluster_anim_cb, 25, NULL);
+    anim_timer = lv_timer_create(cluster_anim_cb, 100, NULL);
 }
 
 void cluster_button_event_cb(lv_event_t *e)
