@@ -8,19 +8,22 @@
 #include "parameter_display.h"
 #include "svg_screen.h"
 #include "benchmark_results.h"
+#include "svg_strings.h"
 
-LV_IMAGE_DECLARE(Tire1);
-LV_IMAGE_DECLARE(Tire2);
-LV_IMAGE_DECLARE(Tire3);
-LV_IMAGE_DECLARE(Tire4);
-LV_IMAGE_DECLARE(Tire5);
-LV_IMAGE_DECLARE(tire_pair1);
-LV_IMAGE_DECLARE(tire_pair2);
-LV_IMAGE_DECLARE(tire_pair3);
-LV_IMAGE_DECLARE(tire_pair4);
-LV_IMAGE_DECLARE(tire_pair5);
-LV_IMAGE_DECLARE(Ellipse);
-LV_IMAGE_DECLARE(Car_Body);
+extern const lv_image_dsc_t Car_Body;
+extern const lv_image_dsc_t Ellipse;
+
+extern const lv_image_dsc_t Tire1;
+extern const lv_image_dsc_t Tire2;
+extern const lv_image_dsc_t Tire3;
+extern const lv_image_dsc_t Tire4;
+extern const lv_image_dsc_t Tire5;
+
+extern const lv_image_dsc_t tire_pair1;
+extern const lv_image_dsc_t tire_pair2;
+extern const lv_image_dsc_t tire_pair3;
+extern const lv_image_dsc_t tire_pair4;
+extern const lv_image_dsc_t tire_pair5;
 
 // Function prototypes
 static void shift_callback(lv_timer_t *timer);
@@ -40,7 +43,8 @@ static lv_point_t positions[5] = {
 		{250, 150},
 		{130, 60}
 };
-static const lv_img_dsc_t *tire_images[5] = {&tire_pair1, &tire_pair2, &tire_pair3, &tire_pair4, &tire_pair5};
+
+static const lv_img_dsc_t *tire_images[5] = {&tire_pair4, &tire_pair5, &tire_pair1, &tire_pair2, &tire_pair3};
 static int tire_w, tire_h;
 
 static void hide_svg_screen_cb(lv_timer_t *timer) {
@@ -69,9 +73,13 @@ void create_svg_scr(void) {
     // Set screen background to white
     lv_obj_set_style_bg_color(screen_svg, lv_color_white(), 0);
 
+    // Reset position indices
+    for(int i = 0; i < 5; i++)
+    	pos_idx[i] = 4 - i;
+
     // Get tire dimensions
-    tire_w = Tire1.header.w;
-    tire_h = Tire1.header.h;
+    tire_w = 65;
+    tire_h = 65;
 
     // Create ellipse image
     lv_obj_t *ellipse = lv_img_create(screen_svg);
@@ -84,11 +92,11 @@ void create_svg_scr(void) {
     lv_obj_set_pos(car_image, 183, 271);
 
     car_tire_image = lv_img_create(screen_svg);
-    lv_img_set_src(car_tire_image, tire_images[2]); // Initially set to the center tire (Tire3)
+    lv_img_set_src(car_tire_image, tire_images[2]);
     lv_obj_set_pos(car_tire_image, 219, 314);
 
     // Tire image descriptors
-    const lv_img_dsc_t *srcs[5] = {&Tire1, &Tire2, &Tire3, &Tire4, &Tire5};
+    static const lv_img_dsc_t *srcs[5] = {&Tire4, &Tire5, &Tire1, &Tire2, &Tire3};
 
     // Create tire images and set initial positions
     for (int i = 0; i < 5; i++) {
@@ -143,7 +151,7 @@ static void shift_callback(lv_timer_t *timer) {
         lv_anim_start(&a_y);
     }
 
-    int center_idx = pos_idx[2]; // Index of the tire at the center position
+    int center_idx = pos_idx[2];
     lv_img_set_src(car_tire_image, tire_images[center_idx]);
 }
 
