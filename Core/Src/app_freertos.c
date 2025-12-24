@@ -49,8 +49,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern uint32_t *buf_direct_2;
-extern uint32_t frame_buffer_size;
 extern JPEG_HandleTypeDef hjpeg;
 extern UART_HandleTypeDef huart1;
 extern volatile uint32_t frame_counter;
@@ -241,33 +239,41 @@ void stat_print_task(void *argument)
 /* USER CODE BEGIN Application */
 int GetTaskCPUUsage(osThreadId_t thread_id)
 {
+    static uint32_t lastTotalRunTime = 0;
+    static uint32_t lastTaskRunTime = 0;
+ 
     UBaseType_t taskCount;
     TaskStatus_t *pxTaskStatusArray;
-    configRUN_TIME_COUNTER_TYPE totalRunTime;
-
+    uint32_t totalRunTime;
+    int result = 0;
+ 
     taskCount = uxTaskGetNumberOfTasks();
     pxTaskStatusArray = pvPortMalloc(taskCount * sizeof(TaskStatus_t));
-
+ 
     if (pxTaskStatusArray != NULL)
     {
         taskCount = uxTaskGetSystemState(pxTaskStatusArray, taskCount, &totalRunTime);
-
-        if (totalRunTime > 0)
+        uint32_t deltaTotal = totalRunTime - lastTotalRunTime;
+ 
+        if (deltaTotal > 0)
         {
             for (UBaseType_t i = 0; i < taskCount; i++)
             {
                 if (pxTaskStatusArray[i].xHandle == (TaskHandle_t)thread_id)
                 {
-                    percentage = ((float)pxTaskStatusArray[i].ulRunTimeCounter / (float)totalRunTime) * 100.0f;
-                    vPortFree(pxTaskStatusArray);
-		    if (percentage > 90)
-			    return 90;
-		    else
-			    return (int)percentage;
+                    uint32_t deltaTask = pxTaskStatusArray[i].ulRunTimeCounter - lastTaskRunTime;
+                    percentage = ((float)deltaTask / (float)deltaTotal) * 100.0f;
+                    result = (int)percentage;
+ 
+                    lastTaskRunTime = pxTaskStatusArray[i].ulRunTimeCounter;
+                    break;
                 }
             }
         }
+        lastTotalRunTime = totalRunTime;
+        vPortFree(pxTaskStatusArray);
     }
+    return result;
 }
 
 void metrics_print(void)
@@ -294,7 +300,7 @@ void metrics_print(void)
         	if (sample_count < NUM_SAMPLES) {
         		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
-        		cpu_usage_samples[sample_count] = GetTaskCPUUsage(defaultTaskHandle);
+        		cpu_usage_samples[sample_count] = cpu;
         		stack_usage_samples[sample_count] = StackUsage;
         		heap_usage_samples[sample_count] = heapUsed;
         		sample_count++;
@@ -325,7 +331,7 @@ void metrics_print(void)
         	if (sample_count < CLUSTER_SAMPLE) {
         		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
-        		cpu_usage_samples[sample_count] = GetTaskCPUUsage(defaultTaskHandle);
+        		cpu_usage_samples[sample_count] = cpu;
         		stack_usage_samples[sample_count] = StackUsage;
         		heap_usage_samples[sample_count] = heapUsed;
         		sample_count++;
