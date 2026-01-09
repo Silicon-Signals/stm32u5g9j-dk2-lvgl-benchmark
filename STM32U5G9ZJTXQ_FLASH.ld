@@ -190,8 +190,10 @@ SECTIONS
   
   .ExtFlashSection :
 	{
+	_sExtFlash = .;
     *(.ExtFlashSection .ExtFlashSection.*)
     *(.gnu.linkonce.r.*)
     . = ALIGN(0x4);
+    _eExtFlash = .;
 	} >EXT_FLASH
 }

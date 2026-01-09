@@ -38,6 +38,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define INTERNAL_FLASH_BASE 0x08000000
+#define RAM2_SIZE 768000
 #define NUM_SAMPLES 10
 #define CLUSTER_SAMPLE 20
 /* USER CODE END PD */
@@ -49,6 +51,18 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+extern uint32_t _edata;
+extern uint32_t _sdata;
+extern uint32_t _ebss;
+extern uint32_t _sbss;
+
+// --- Linker Symbols ---
+extern uint32_t _sidata;       // Start of Initialized Data (Internal Flash)
+extern uint32_t _sdata;        // Start of Initialized Data (in RAM)
+extern uint32_t _edata;        // End of Initialized Data (in RAM)
+extern uint32_t _sExtFlash;    // Start of External Flash Data
+extern uint32_t _eExtFlash;    // End of External Flash Data
+
 extern JPEG_HandleTypeDef hjpeg;
 extern UART_HandleTypeDef huart1;
 extern volatile uint32_t frame_counter;
@@ -78,13 +92,12 @@ uint32_t sample_count = 0;
 uint32_t fps_samples[CLUSTER_SAMPLE];
 uint32_t render_time_samples[CLUSTER_SAMPLE];
 uint32_t cpu_usage_samples[CLUSTER_SAMPLE];
-uint32_t stack_usage_samples[CLUSTER_SAMPLE];
-uint32_t heap_usage_samples[CLUSTER_SAMPLE];
 uint32_t avg_fps = 0;
 uint32_t avg_render_time = 0;
 uint32_t avg_cpu_usage = 0;
-uint32_t avg_stack_usage = 0;
-uint32_t avg_heap_usage = 0;
+uint32_t external_usage = 0;
+uint32_t totalRamUsed = 0;
+uint32_t internal_usage = 0;
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -241,20 +254,20 @@ int GetTaskCPUUsage(osThreadId_t thread_id)
 {
     static uint32_t lastTotalRunTime = 0;
     static uint32_t lastTaskRunTime = 0;
- 
+
     UBaseType_t taskCount;
     TaskStatus_t *pxTaskStatusArray;
-    uint32_t totalRunTime;
+    configRUN_TIME_COUNTER_TYPE totalRunTime;
     int result = 0;
- 
+
     taskCount = uxTaskGetNumberOfTasks();
     pxTaskStatusArray = pvPortMalloc(taskCount * sizeof(TaskStatus_t));
- 
+
     if (pxTaskStatusArray != NULL)
     {
         taskCount = uxTaskGetSystemState(pxTaskStatusArray, taskCount, &totalRunTime);
         uint32_t deltaTotal = totalRunTime - lastTotalRunTime;
- 
+
         if (deltaTotal > 0)
         {
             for (UBaseType_t i = 0; i < taskCount; i++)
@@ -264,7 +277,7 @@ int GetTaskCPUUsage(osThreadId_t thread_id)
                     uint32_t deltaTask = pxTaskStatusArray[i].ulRunTimeCounter - lastTaskRunTime;
                     percentage = ((float)deltaTask / (float)deltaTotal) * 100.0f;
                     result = (int)percentage;
- 
+
                     lastTaskRunTime = pxTaskStatusArray[i].ulRunTimeCounter;
                     break;
                 }
@@ -284,11 +297,21 @@ void metrics_print(void)
     uint32_t current_ms = HAL_GetTick();
     uint32_t elapsed_ms = current_ms - last_time;
 
+    uint32_t init_data_size = (uint32_t)&_edata - (uint32_t)&_sdata;
+    uint32_t internal_flash_end = (uint32_t)&_sidata + init_data_size;
+    internal_usage = (internal_flash_end - INTERNAL_FLASH_BASE) / 1024;
+
+    external_usage = ((uint32_t)&_eExtFlash - (uint32_t)&_sExtFlash) / 1024;
+
+    uint32_t dataSize = (uint32_t)&_edata - (uint32_t)&_sdata;
+    uint32_t bssSize  = (uint32_t)&_ebss - (uint32_t)&_sbss;
+
+    // --- Total RAM usage (approx) ---
+    totalRamUsed = (dataSize + bssSize + RAM2_SIZE) / 1024;
+
     if (elapsed_ms >= 1000)
     {
         last_time = current_ms;
-        StackUsage = (defaultTask_attributes.stack_size - (uxTaskGetStackHighWaterMark(defaultTaskHandle) * sizeof(StackType_t))); // In Bytes
-        uint32_t heapUsed = (configTOTAL_HEAP_SIZE - xPortGetFreeHeapSize());
         uint32_t frames = frame_counter - last_frames;
         if (frames > 60) frames = 60;
         last_frames = frame_counter;
@@ -301,26 +324,20 @@ void metrics_print(void)
         		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
         		cpu_usage_samples[sample_count] = cpu;
-        		stack_usage_samples[sample_count] = StackUsage;
-        		heap_usage_samples[sample_count] = heapUsed;
         		sample_count++;
         	}
         	// After 10 samples, calculate averages and complete demo
         	if (sample_count >= NUM_SAMPLES) {
                  // Calculate averages
-        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0, sum_stack_usage = 0, sum_heap_usage = 0;
+        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0;
         		for (uint32_t i = 0; i < NUM_SAMPLES; i++) {
         			sum_fps += fps_samples[i];
         			sum_render_time += render_time_samples[i];
         			sum_cpu_usage += cpu_usage_samples[i];
-        			sum_stack_usage += stack_usage_samples[i];
-        			sum_heap_usage += heap_usage_samples[i];
         		}
         		avg_fps = sum_fps / NUM_SAMPLES;
         		avg_render_time = sum_render_time / NUM_SAMPLES;
         		avg_cpu_usage = sum_cpu_usage / NUM_SAMPLES;
-        		avg_stack_usage = sum_stack_usage / NUM_SAMPLES;
-        		avg_heap_usage = sum_heap_usage / NUM_SAMPLES;
 
         		demo_running = false;
         		demo_complete = true;
@@ -332,26 +349,20 @@ void metrics_print(void)
         		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
         		cpu_usage_samples[sample_count] = cpu;
-        		stack_usage_samples[sample_count] = StackUsage;
-        		heap_usage_samples[sample_count] = heapUsed;
         		sample_count++;
         	}
         	// After 10 samples, calculate averages and complete demo
         	if (sample_count >= CLUSTER_SAMPLE) {
                  // Calculate averages
-        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0, sum_stack_usage = 0, sum_heap_usage = 0;
+        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0;
         		for (uint32_t i = 0; i < CLUSTER_SAMPLE; i++) {
         			sum_fps += fps_samples[i];
         			sum_render_time += render_time_samples[i];
         			sum_cpu_usage += cpu_usage_samples[i];
-        			sum_stack_usage += stack_usage_samples[i];
-        			sum_heap_usage += heap_usage_samples[i];
         		}
         		avg_fps = sum_fps / CLUSTER_SAMPLE;
         		avg_render_time = sum_render_time / CLUSTER_SAMPLE;
         		avg_cpu_usage = sum_cpu_usage / CLUSTER_SAMPLE;
-        		avg_stack_usage = sum_stack_usage / CLUSTER_SAMPLE;
-        		avg_heap_usage = sum_heap_usage / CLUSTER_SAMPLE;
 
         		cluster_running = false;
         		demo_complete = true;

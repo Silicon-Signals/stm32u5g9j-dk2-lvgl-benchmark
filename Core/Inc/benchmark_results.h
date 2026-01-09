@@ -13,9 +13,10 @@
 extern uint32_t avg_fps;
 extern uint32_t avg_render_time;
 extern uint32_t avg_cpu_usage;
-extern uint32_t avg_stack_usage;
-extern uint32_t avg_heap_usage;
 extern uint32_t demo_running;
 extern uint32_t cluster_running;
+extern uint32_t internal_usage;
+extern uint32_t external_usage;
+extern uint32_t totalRamUsed;
 
 #endif /* INC_BENCHMARK_RESULTS_H_ */

@@ -28,15 +28,16 @@ static void auto_return_cb(lv_timer_t * timer)
     lv_timer_del(pause_timer);
     pause_timer = NULL;
 
-    char fps_str[16], stack_str[16], heap_str[16], render_str[16], cpu_str[16];
+    char fps_str[16], external_str[16], ram_str[16], render_str[16], cpu_str[16], internal_str[16];
 
-    snprintf(fps_str, sizeof(fps_str), "%lu", avg_fps);
-    snprintf(stack_str, sizeof(stack_str), "%lu KB", avg_stack_usage / 1024);
-    snprintf(heap_str, sizeof(heap_str), "%lu KB", avg_heap_usage / 1024);
-    snprintf(render_str, sizeof(render_str), "%lu ms", avg_render_time);
-    snprintf(cpu_str, sizeof(cpu_str), "%lu %%", avg_cpu_usage);
+    snprintf(fps_str,  sizeof(fps_str),  "%lu", avg_fps);
+    snprintf(external_str, sizeof(external_str), "%lu MB", external_usage / 1024);
+    snprintf(internal_str, sizeof(internal_str), "%lu KB", internal_usage);
+    snprintf(ram_str,  sizeof(ram_str),  "%lu MB", totalRamUsed / 1024);
+    snprintf(render_str,sizeof(render_str),"%lu ms", avg_render_time);
+    snprintf(cpu_str,   sizeof(cpu_str),   "%lu %%", avg_cpu_usage);
 
-    static_param_screen_init("Text Scroll Test", fps_str, stack_str, heap_str, render_str, cpu_str);
+    static_param_screen_init("Text Scroll Test", fps_str, ram_str, internal_str, external_str, render_str, cpu_str);
 
     if (scroll_obj) {
         lv_obj_del(scroll_obj);
