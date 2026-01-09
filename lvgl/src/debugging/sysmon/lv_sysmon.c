@@ -64,6 +64,8 @@ extern volatile uint32_t boot_stop;
 extern volatile uint32_t boot_time;
 extern volatile uint32_t boot_flag;
 extern uint32_t transit_clock_ms;
+static uint32_t flush_total_cycles = 0;
+static uint32_t flush_start_cycle = 0;
 /**********************
  *      MACROS
  **********************/
@@ -233,12 +235,13 @@ static void perf_monitor_disp_event_cb(lv_event_t * e)
             break;
         case LV_EVENT_RENDER_START:
 		render_start_ms = DWT->CYCCNT;
+		flush_total_cycles = 0;
             info->measured.render_in_progress = 1;
             info->measured.render_start = lv_tick_get();
             break;
         case LV_EVENT_RENDER_READY:
 		render_end_ms = DWT->CYCCNT;
-		uint32_t diff = render_end_ms - render_start_ms;
+		uint32_t diff = render_end_ms - render_start_ms - flush_total_cycles;
 		render_time = diff / (SystemCoreClock / 1000);
             info->measured.render_in_progress = 0;
             info->measured.render_elaps_sum += lv_tick_elaps(info->measured.render_start);
@@ -246,6 +249,7 @@ static void perf_monitor_disp_event_cb(lv_event_t * e)
             break;
         case LV_EVENT_FLUSH_START:
         case LV_EVENT_FLUSH_WAIT_START:
+            flush_start_cycle = DWT->CYCCNT;
             if(info->measured.render_in_progress) {
                 info->measured.flush_in_render_start = lv_tick_get();
             }
@@ -255,6 +259,7 @@ static void perf_monitor_disp_event_cb(lv_event_t * e)
             break;
         case LV_EVENT_FLUSH_FINISH:
         case LV_EVENT_FLUSH_WAIT_FINISH:
+            flush_total_cycles += (DWT->CYCCNT - flush_start_cycle);
             if(info->measured.render_in_progress) {
                 info->measured.flush_in_render_elaps_sum += lv_tick_elaps(info->measured.flush_in_render_start);
             }
