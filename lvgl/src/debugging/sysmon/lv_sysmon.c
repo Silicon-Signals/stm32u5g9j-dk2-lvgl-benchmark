@@ -228,22 +228,18 @@ static void perf_monitor_disp_event_cb(lv_event_t * e)
             break;
         case LV_EVENT_REFR_READY:
         	frame_counter++;
-            if (boot_flag) {
-            	boot_stop = DWT->CYCCNT;
-            	boot_time = ((transit_clock_ms)/4000) + ((boot_stop)/160000); 			//HAL_GetTick();				//(((boot_stop - boot_start) * 1000) / SystemCoreClock);	// boot time = ((cycle * 1000) / SystemCoreClock)
-            	boot_flag = 0;
-            }
             info->measured.refr_elaps_sum += lv_tick_elaps(info->measured.refr_start);
             info->measured.refr_cnt++;
             break;
         case LV_EVENT_RENDER_START:
-        	render_start_ms = HAL_GetTick();
+		render_start_ms = DWT->CYCCNT;
             info->measured.render_in_progress = 1;
             info->measured.render_start = lv_tick_get();
             break;
         case LV_EVENT_RENDER_READY:
-        	render_end_ms = HAL_GetTick();
-        	render_time = render_end_ms - render_start_ms;
+		render_end_ms = DWT->CYCCNT;
+		uint32_t diff = render_end_ms - render_start_ms;
+		render_time = diff / (SystemCoreClock / 1000);
             info->measured.render_in_progress = 0;
             info->measured.render_elaps_sum += lv_tick_elaps(info->measured.render_start);
             info->measured.render_cnt++;
