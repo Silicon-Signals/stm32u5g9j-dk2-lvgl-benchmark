@@ -32,7 +32,7 @@ static void hide_2d_screen_cb(lv_timer_t *timer)
     snprintf(fps_str,  sizeof(fps_str),  "%lu", avg_fps);
     snprintf(external_str, sizeof(external_str), "%lu MB", external_usage / 1024);
     snprintf(internal_str, sizeof(internal_str), "%lu KB", internal_usage);
-    snprintf(ram_str,  sizeof(ram_str),  "%lu MB", totalRamUsed / 1024);
+    snprintf(ram_str,  sizeof(ram_str),  "%lu KB", totalRamUsed);
     snprintf(render_str,sizeof(render_str),"%lu ms", avg_render_time);
     snprintf(cpu_str,   sizeof(cpu_str),   "%lu %%", avg_cpu_usage);
 
