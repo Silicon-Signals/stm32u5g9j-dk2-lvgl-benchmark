@@ -223,8 +223,10 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  lv_timer_handler();
-	  osDelay(1);
+	  uint32_t time_to_next = lv_timer_handler();
+	  if(time_to_next == LV_NO_TIMER_READY)
+		  time_to_next = 1;
+	  lv_sleep_ms(time_to_next);
   }
   /* USER CODE END defaultTask */
 }
