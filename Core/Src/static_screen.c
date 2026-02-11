@@ -21,7 +21,6 @@ static lv_timer_t *color_timer;
 static lv_timer_t *screen_timer;
 
 static int color_index = 0;
-static lv_obj_t *new_screen;
 
 // Extern main_screen object
 extern lv_obj_t *main_screen;
@@ -57,16 +56,8 @@ static void color_timer_cb(lv_timer_t * timer) {
 // Return to home screen after 10s
 static void auto_return_cb(lv_timer_t * timer) {
     if(color_timer) lv_timer_del(color_timer);
-    char fps_str[16], external_str[16], ram_str[16], render_str[16], cpu_str[16], internal_str[16];
 
-    snprintf(fps_str,  sizeof(fps_str),  "%lu", avg_fps);
-    snprintf(external_str, sizeof(external_str), "%lu MB", external_usage / 1024);
-    snprintf(internal_str, sizeof(internal_str), "%lu KB", internal_usage);
-    snprintf(ram_str,  sizeof(ram_str),  "%lu KB", totalRamUsed);
-    snprintf(render_str,sizeof(render_str),"%lu ms", avg_render_time);
-    snprintf(cpu_str,   sizeof(cpu_str),   "%lu %%", avg_cpu_usage);
-
-    static_param_screen_init("Static Test", fps_str, ram_str, internal_str, external_str, render_str, cpu_str);
+    static_param_screen_init("Static Test");
 
     if(new_screen) {
         lv_obj_del(new_screen);
@@ -83,6 +74,11 @@ static void auto_return_cb(lv_timer_t * timer) {
 void static_button_event_cb(lv_event_t * e) {
 	demo_running = 1;
 
+    // Reset color indices
+    square_color_index = 0;
+    circle_color_index = 0;
+    rectangle_color_index = 0;
+
     // Create new screen
     new_screen = lv_obj_create(NULL);
 
@@ -90,20 +86,26 @@ void static_button_event_cb(lv_event_t * e) {
     square = lv_obj_create(new_screen);
     lv_obj_set_size(square, 150, 150); // width = L, height = h.
     lv_obj_set_style_radius(square, 0, 0);
+    lv_obj_set_style_border_width(square, 0, 0);
     lv_obj_set_pos(square, 141, 52);
+    lv_obj_set_style_bg_color(square, square_color[square_color_index], 0);
 
     // Circle
     circle = lv_obj_create(new_screen);
     lv_obj_set_size(circle, 150, 150); // radius = 75, width = 75 * 2, height = 75 * 2.
     lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_border_width(circle, 0, 0);
     lv_obj_set_pos(circle, 141, 277);
+    lv_obj_set_style_bg_color(circle, circle_color[circle_color_index], 0);
 
     // Rectangle
     rectangle = lv_obj_create(new_screen);
     lv_obj_set_size(rectangle, 200, 100); // width = L, height = h.
     lv_obj_set_style_radius(rectangle, 0, 0);
+    lv_obj_set_style_border_width(rectangle, 0, 0);
     lv_obj_set_pos(rectangle, 466, 77);
     lv_obj_set_style_radius(rectangle, 20, 0);
+    lv_obj_set_style_bg_color(rectangle, rectangle_color[rectangle_color_index], 0);
 
     // Alpha Square
     alpha_square = lv_obj_create(new_screen);
@@ -112,6 +114,7 @@ void static_button_event_cb(lv_event_t * e) {
     lv_obj_set_style_radius(alpha_square, 0, 0);
     lv_obj_set_style_bg_opa(alpha_square, 127, 0);
     lv_obj_set_style_border_width(alpha_square, 0, 0);
+    lv_obj_set_style_bg_color(alpha_square, square_color[square_color_index], 0);
 
     // Alpha Circle
     alpha_circle = lv_obj_create(new_screen);
@@ -120,6 +123,7 @@ void static_button_event_cb(lv_event_t * e) {
     lv_obj_set_pos(alpha_circle, 557, 217);
     lv_obj_set_style_bg_opa(alpha_circle, 127, 0);
     lv_obj_set_style_border_width(alpha_circle, 0, 0);
+    lv_obj_set_style_bg_color(alpha_circle, circle_color[circle_color_index], 0);
 
     // Load Screen
     lv_scr_load(new_screen);

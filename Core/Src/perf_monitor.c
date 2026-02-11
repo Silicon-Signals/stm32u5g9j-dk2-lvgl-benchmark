@@ -33,10 +33,10 @@ void perf_monitor_create(void)
 
     perf_label = lv_label_create(perf_box);
 
-    lv_obj_set_size(perf_label, 120, 30);
+    lv_obj_set_size(perf_label, 110, 30);
     lv_obj_set_style_text_color(perf_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(perf_label, &lv_font_calibri_regular_15, 0);
-    lv_label_set_text(perf_label, " 00 FPS, 00%CPU\n 00 ms");
+    lv_label_set_text(perf_label, " 00 FPS, 0%CPU\n 0 ms");
 
     lv_obj_set_style_text_align(perf_label, LV_TEXT_ALIGN_LEFT, 0);
     lv_obj_align(perf_label, LV_ALIGN_CENTER, 0, 0);
@@ -44,7 +44,7 @@ void perf_monitor_create(void)
 
 void perf_monitor_update(lv_timer_t *t)
 {
-    lv_label_set_text_fmt(perf_label, " %02u FPS, %02u%%CPU\n %02" LV_PRIu32 " ms", fps, cpu, render_time);
+    lv_label_set_text_fmt(perf_label, " %02u FPS, %u%%CPU\n %u ms", fps, cpu, render_time);
 }
 
 void perf_monitor_start(void)

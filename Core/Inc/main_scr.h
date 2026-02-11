@@ -29,6 +29,12 @@ extern "C" {
 /**********************
  *      TYPEDEFS
  **********************/
+typedef enum {
+    MODE_MANUAL = 0,
+    MODE_AUTO
+} demo_mode_t;
+
+extern demo_mode_t current_mode;
 
 /**********************
  * GLOBAL PROTOTYPES

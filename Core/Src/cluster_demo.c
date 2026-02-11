@@ -90,16 +90,7 @@ static void cleanup_and_exit(void)
         anim_timer = NULL;
     }
 
-    char fps_str[16], external_str[16], ram_str[16], render_str[16], cpu_str[16], internal_str[16];
-
-    snprintf(fps_str,  sizeof(fps_str),  "%lu", avg_fps);
-    snprintf(external_str, sizeof(external_str), "%lu MB", external_usage / 1024);
-    snprintf(internal_str, sizeof(internal_str), "%lu KB", internal_usage);
-    snprintf(ram_str,  sizeof(ram_str),  "%lu KB", totalRamUsed);
-    snprintf(render_str,sizeof(render_str),"%lu ms", avg_render_time);
-    snprintf(cpu_str,   sizeof(cpu_str),   "%lu %%", avg_cpu_usage);
-
-    static_param_screen_init("Cluster Test", fps_str, ram_str, internal_str, external_str, render_str, cpu_str);
+    static_param_screen_init("Cluster Test");
 
     if (scr) {
         lv_obj_del(scr);

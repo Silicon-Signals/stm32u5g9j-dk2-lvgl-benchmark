@@ -89,10 +89,8 @@ uint32_t demo_total_frames = 0;
 uint32_t demo_running = 0;       // 0 = off, 1 = running
 uint32_t cluster_running = 0;
 uint32_t sample_count = 0;
-uint32_t fps_samples[CLUSTER_SAMPLE];
 uint32_t render_time_samples[CLUSTER_SAMPLE];
 uint32_t cpu_usage_samples[CLUSTER_SAMPLE];
-uint32_t avg_fps = 0;
 uint32_t avg_render_time = 0;
 uint32_t avg_cpu_usage = 0;
 uint32_t external_usage = 0;
@@ -323,7 +321,6 @@ void metrics_print(void)
 
         if (demo_running) {
         	if (sample_count < NUM_SAMPLES) {
-        		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
         		cpu_usage_samples[sample_count] = cpu;
         		sample_count++;
@@ -331,13 +328,11 @@ void metrics_print(void)
         	// After 10 samples, calculate averages and complete demo
         	if (sample_count >= NUM_SAMPLES) {
                  // Calculate averages
-        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0;
+        		uint32_t sum_render_time = 0, sum_cpu_usage = 0;
         		for (uint32_t i = 0; i < NUM_SAMPLES; i++) {
-        			sum_fps += fps_samples[i];
         			sum_render_time += render_time_samples[i];
         			sum_cpu_usage += cpu_usage_samples[i];
         		}
-        		avg_fps = sum_fps / NUM_SAMPLES;
         		avg_render_time = sum_render_time / NUM_SAMPLES;
         		avg_cpu_usage = sum_cpu_usage / NUM_SAMPLES;
 
@@ -348,7 +343,6 @@ void metrics_print(void)
         }
         if (cluster_running) {
         	if (sample_count < CLUSTER_SAMPLE) {
-        		fps_samples[sample_count] = frames;
         		render_time_samples[sample_count] = render_time;
         		cpu_usage_samples[sample_count] = cpu;
         		sample_count++;
@@ -356,13 +350,11 @@ void metrics_print(void)
         	// After 10 samples, calculate averages and complete demo
         	if (sample_count >= CLUSTER_SAMPLE) {
                  // Calculate averages
-        		uint32_t sum_fps = 0, sum_render_time = 0, sum_cpu_usage = 0;
+        		uint32_t sum_render_time = 0, sum_cpu_usage = 0;
         		for (uint32_t i = 0; i < CLUSTER_SAMPLE; i++) {
-        			sum_fps += fps_samples[i];
         			sum_render_time += render_time_samples[i];
         			sum_cpu_usage += cpu_usage_samples[i];
         		}
-        		avg_fps = sum_fps / CLUSTER_SAMPLE;
         		avg_render_time = sum_render_time / CLUSTER_SAMPLE;
         		avg_cpu_usage = sum_cpu_usage / CLUSTER_SAMPLE;
 

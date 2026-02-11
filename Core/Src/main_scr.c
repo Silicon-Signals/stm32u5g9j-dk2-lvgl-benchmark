@@ -21,6 +21,8 @@
 /*********************
  *      DEFINES
  *********************/
+LV_IMAGE_DECLARE(toggle_left);
+LV_IMAGE_DECLARE(toggle_right);
 #define MENU_BTN_SIZE   60   // Diameter of small menu buttons
 #define MAIN_BTN_SIZE   190  // Diameter of central button
 /**********************
@@ -31,6 +33,23 @@ struct _lv_hit_test_info_t {
     const lv_point_t * point;   /**< A point relative to screen to check if it can click the object or not*/
     bool res;                   /**< true: `point` can click the object; false: it cannot*/
 };
+
+
+demo_mode_t current_mode = MODE_MANUAL;
+
+typedef enum {
+    AUTO_VIDEO = 0,
+    AUTO_2D,
+    AUTO_STATIC,
+    AUTO_SVG,
+    AUTO_TEXT,
+    AUTO_CLUSTER,
+} auto_demo_state_t;
+
+static auto_demo_state_t auto_state = 0;
+static lv_timer_t * auto_timer;
+static lv_obj_t * lbl_mode;
+
 /***********************
  *  STATIC VARIABLES
  **********************/
@@ -61,15 +80,19 @@ lv_obj_t *btn_close;
 lv_obj_t *btn_cluster;
 lv_obj_t *main_btn;
 lv_obj_t *label_center;
+lv_obj_t *mode_sw;
 
 /**********************
  *   GLOBAL FUNCTIONS
  **********************/
-
+static void start_button_event_cb(lv_event_t * e);
 void menu_button_event_cb(lv_event_t * e) {
     if(menu_open)
         return;
     lv_obj_add_flag(label_center, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(mode_sw, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(lbl_mode, LV_OBJ_FLAG_HIDDEN);
+
     start_button_animation(btn_static,
         center_x + radius * cos(DEG_TO_RAD(angle_btn_static)) - MENU_BTN_SIZE/2,
         center_y + radius * sin(DEG_TO_RAD(angle_btn_static)) - MENU_BTN_SIZE/2);
@@ -142,6 +165,8 @@ static void animate_button_back(lv_obj_t * btn, int center_x, int center_y)
 static void show_center_label_timer_cb(lv_timer_t * timer)
 {
     lv_obj_clear_flag(label_center, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(mode_sw, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(lbl_mode, LV_OBJ_FLAG_HIDDEN);
     lv_timer_del(timer);  // self-delete
 }
 
@@ -196,6 +221,102 @@ static void circular_hit_test_cb(lv_event_t * e)
     }
 }
 
+static void mode_switch_event_cb(lv_event_t * e)
+{
+    lv_obj_t * img = lv_event_get_target(e);
+
+    if(current_mode == MODE_MANUAL) {
+        /* Switch to AUTO */
+        lv_obj_add_flag(btn_static, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_2d, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_video, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_svg, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_close, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_text_scroll, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(btn_cluster, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(label_center, LV_OBJ_FLAG_HIDDEN);
+
+        current_mode = MODE_AUTO;
+        lv_image_set_src(img, &toggle_right);
+        lv_label_set_text(lbl_mode, "Auto");
+    } else {
+        /* Switch to MANUAL */
+        menu_open = false;
+
+        current_mode = MODE_MANUAL;
+        lv_image_set_src(img, &toggle_left);
+        lv_label_set_text(lbl_mode, "Manual");
+    }
+}
+
+static void auto_demo_timer_cb(lv_timer_t * timer)
+{
+    switch(auto_state)
+    {
+        case AUTO_VIDEO:
+        	video_button_event_cb(NULL);
+            auto_state = AUTO_2D;
+            lv_timer_set_period(timer, 13000);
+            break;
+
+        case AUTO_2D:
+            button_2d_event_cb(NULL);
+            auto_state = AUTO_STATIC;
+            lv_timer_set_period(timer, 13000);
+            break;
+
+        case AUTO_STATIC:
+            static_button_event_cb(NULL);
+            auto_state = AUTO_SVG;
+            lv_timer_set_period(timer, 13000);
+            break;
+
+        case AUTO_SVG:
+            button_svg_event_cb(NULL);
+            auto_state = AUTO_TEXT;
+            lv_timer_set_period(timer, 13000);
+            break;
+
+        case AUTO_TEXT:
+            text_scroll_button_event_cb(NULL);
+            auto_state = AUTO_CLUSTER;
+            lv_timer_set_period(timer, 13000);
+            break;
+
+        case AUTO_CLUSTER:
+        	cluster_button_event_cb(NULL);
+            auto_state = AUTO_VIDEO;
+            lv_timer_set_period(timer, 23000);
+            break;
+        default:
+            auto_state = AUTO_VIDEO;
+            lv_timer_set_period(timer, 13000);
+            break;
+    }
+}
+
+static void start_auto_demo(void)
+{
+    if(auto_timer) {
+        lv_timer_del(auto_timer);
+        auto_timer = NULL;
+    }
+
+    auto_state = AUTO_VIDEO;
+    auto_timer = lv_timer_create(auto_demo_timer_cb, 10, NULL);
+}
+
+static void start_button_event_cb(lv_event_t * e)
+{
+    auto_state = AUTO_VIDEO;
+
+    if(current_mode == MODE_AUTO) {
+        start_auto_demo();
+    } else {
+        menu_button_event_cb(e);
+    }
+}
+
 lv_obj_t * main_screen_start(void)
 {
     LV_TRACE_OBJ_CREATE("begin");
@@ -219,6 +340,19 @@ lv_obj_t * main_screen_start(void)
     lv_obj_set_height(bg_img, 480);
     lv_obj_set_x(bg_img, 0);
     lv_obj_set_y(bg_img, 0);
+
+    mode_sw = lv_image_create(bg_img);
+    lv_image_set_src(mode_sw, &toggle_left);
+    lv_obj_set_pos(mode_sw, 0, 438);   // left-bottom
+    lv_obj_add_flag(mode_sw, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(mode_sw, mode_switch_event_cb, LV_EVENT_CLICKED, NULL);
+
+    /* Dynamic mode label (LEFT of switch) */
+    lbl_mode = lv_label_create(bg_img);
+    lv_label_set_text(lbl_mode, "Manual");   // default when switch OFF
+    lv_obj_set_style_text_font(lbl_mode, &lv_font_calibri_bold_18, 0);
+    lv_obj_set_style_text_color(lbl_mode, lv_color_white(), 0);
+    lv_obj_set_pos(lbl_mode, 82, 447);
 
     main_btn = lv_button_create(bg_img);
     lv_obj_remove_style_all(main_btn);
@@ -289,7 +423,6 @@ lv_obj_t * main_screen_start(void)
     lv_label_set_long_mode(label_2d, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(label_2d, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_align(label_2d, LV_ALIGN_CENTER);
-
 
     btn_svg = lv_button_create(bg_img);
     lv_obj_remove_style_all(btn_svg);
@@ -409,7 +542,7 @@ lv_obj_t * main_screen_start(void)
     lv_obj_add_flag(btn_text_scroll, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btn_cluster, LV_OBJ_FLAG_HIDDEN);
 
-    lv_obj_add_event_cb(main_btn, menu_button_event_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(main_btn, start_button_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_close, close_button_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_static, static_button_event_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_2d, button_2d_event_cb, LV_EVENT_CLICKED, NULL);

@@ -10,6 +10,7 @@
 
 #include "lvgl/lvgl.h"
 
-void static_param_screen_init(char *test_label, char *frame_rate, char *ram_use, char *internal_flash_size, char *exteral_flash_size, char *render_time, char *cpu_load);
+void static_param_screen_init(char *test_label);
+void static_param_screen_close(void);
 
 #endif /* INC_PARAMETER_DISPLAY_H_ */

@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 
-extern uint32_t avg_fps;
 extern uint32_t avg_render_time;
 extern uint32_t avg_cpu_usage;
 extern uint32_t demo_running;
