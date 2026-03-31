@@ -189,12 +189,6 @@ int main(void)
   lv_obj_t * out = main_screen_start();
   lv_scr_load(out);
 
-  // LTDC setup to enable Interrupt
-  __HAL_LTDC_ENABLE_IT(&hltdc, LTDC_IT_LI);		// Enable LTDC line interrupt
-  HAL_LTDC_ProgramLineEvent(&hltdc, 0);			// Select the line to trigger event
-  HAL_NVIC_SetPriority(LTDC_IRQn, 0, 0);		// Enable NVIC line interrupt
-  HAL_NVIC_EnableIRQ(LTDC_IRQn);				// NVIC LTDC IRQ enable
-
   /* USER CODE END 2 */
 
   /* Init scheduler */
